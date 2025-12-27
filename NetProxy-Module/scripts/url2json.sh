@@ -700,6 +700,12 @@ generate_stream_settings() {
 generate_outbound() {
     case "$PROTOCOL" in
         VLESS)
+            # 构建 flow 字段（如果存在）
+            local flow_field=""
+            if [ -n "$FLOW" ]; then
+                flow_field="\"flow\": \"$FLOW\","
+            fi
+            
             cat << EOF
     {
       "mux": {
@@ -715,6 +721,7 @@ generate_outbound() {
             "users": [
               {
                 "encryption": "$ENCRYPTION",
+                ${flow_field}
                 "id": "$UUID",
                 "level": 8
               }
