@@ -49,7 +49,7 @@ export class ConfigPageManager {
     async update() {
         try {
             const listEl = document.getElementById('config-list');
-            this.ui.showSkeleton(listEl, 3);
+            this.ui.showSkeleton(listEl, 3, { showIcon: false });
 
             const groups = await KSUService.getConfigGroups();
             const { config: currentConfig } = await KSUService.getStatus();
@@ -59,11 +59,16 @@ export class ConfigPageManager {
                 return;
             }
 
-            listEl.innerHTML = '';
+            // 先构建所有 DOM 元素到一个文档片段中
+            const fragment = document.createDocumentFragment();
 
             for (const group of groups) {
-                await this.renderGroup(listEl, group, currentConfig);
+                await this.renderGroup(fragment, group, currentConfig);
             }
+
+            // 所有内容准备好后，一次性替换
+            listEl.innerHTML = '';
+            listEl.appendChild(fragment);
         } catch (error) {
             console.error('Update config page failed:', error);
         }
@@ -160,6 +165,7 @@ export class ConfigPageManager {
     renderConfigItem(container, filename, fullPath, info, isCurrent, group) {
         const item = document.createElement('mdui-list-item');
         item.setAttribute('clickable', '');
+        item.classList.add('config-item'); // 添加类以便 CSS 禁用 ripple
         item.style.paddingLeft = '48px'; // 缩进表示层级
 
         const displayName = filename.replace(/\.json$/i, '');
@@ -186,7 +192,11 @@ export class ConfigPageManager {
         const menuBtn = document.createElement('mdui-button-icon');
         menuBtn.setAttribute('slot', 'trigger');
         menuBtn.setAttribute('icon', 'more_vert');
+        // 阻止所有事件冒泡到父列表项，防止触发 ripple 和选中效果
         menuBtn.addEventListener('click', (e) => e.stopPropagation());
+        menuBtn.addEventListener('mousedown', (e) => e.stopPropagation());
+        menuBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
+        menuBtn.addEventListener('touchstart', (e) => e.stopPropagation());
         dropdown.appendChild(menuBtn);
 
         const menu = document.createElement('mdui-menu');
@@ -286,7 +296,7 @@ export class ConfigPageManager {
 
         // 先显示骨架屏
         const listEl = document.getElementById('config-list');
-        this.ui.showSkeleton(listEl, 5);
+        this.ui.showSkeleton(listEl, 5, { showIcon: false });
 
         // 使用 setTimeout 让浏览器先渲染 UI
         setTimeout(async () => {
@@ -354,7 +364,7 @@ export class ConfigPageManager {
 
         // 显示骨架屏
         const listEl = document.getElementById('config-list');
-        this.ui.showSkeleton(listEl, 5);
+        this.ui.showSkeleton(listEl, 5, { showIcon: false });
 
         toast('正在下载订阅，请稍候...');
 

@@ -168,6 +168,34 @@ mdui-list-item[clickable]:hover {
   background-color: var(--monet-surface-variant, var(--mdui-color-surface-variant));
 }
 
+/* 修复：当下拉菜单打开时，列表项不应显示选中状态 */
+mdui-list-item:focus,
+mdui-list-item:focus-visible,
+mdui-list-item:focus-within {
+  background-color: transparent !important;
+  outline: none !important;
+}
+
+/* 当列表项包含打开的下拉菜单时，不显示选中背景和 ripple */
+mdui-list-item:has(mdui-dropdown[open]) {
+  background-color: transparent !important;
+}
+
+/* 覆盖 MDUI 内部的 selected/focused 状态 */
+mdui-list-item::part(container):focus,
+mdui-list-item::part(container):focus-visible {
+  background-color: transparent !important;
+}
+
+/* 配置项列表：禁用包含下拉菜单的列表项的 ripple 和 state-layer */
+mdui-list-item.config-item::part(state-layer) {
+  display: none !important;
+}
+
+mdui-list-item.config-item::part(ripple) {
+  display: none !important;
+}
+
 /* ==================== 折叠面板 ==================== */
 
 /* 折叠面板 - 保持圆角 */

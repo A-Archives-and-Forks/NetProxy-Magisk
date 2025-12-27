@@ -384,19 +384,38 @@ export class UI {
         });
     }
 
-    showSkeleton(container, count = 3) {
+    /**
+     * 显示骨架屏加载动画
+     * @param {HTMLElement} container - 容器元素
+     * @param {number} count - 骨架项数量
+     * @param {Object} options - 配置选项
+     * @param {boolean} options.showIcon - 是否显示圆形图标占位符（默认 true，适用于应用列表）
+     */
+    showSkeleton(container, count = 3, options = {}) {
+        const { showIcon = true } = options;
         container.innerHTML = '';
         for (let i = 0; i < count; i++) {
             const item = document.createElement('mdui-list-item');
-            item.innerHTML = `
-                <div style="display: flex; align-items: center; gap: 12px; width: 100%; padding: 8px 0;">
-                    <div class="skeleton skeleton-circle" style="width: 40px; height: 40px;"></div>
-                    <div style="flex: 1;">
-                        <div class="skeleton skeleton-text" style="width: 60%; height: 16px; margin-bottom: 8px;"></div>
-                        <div class="skeleton skeleton-text" style="width: 40%; height: 12px;"></div>
+            if (showIcon) {
+                // 带图标的骨架屏（适用于应用列表）
+                item.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 12px; width: 100%; padding: 8px 0;">
+                        <div class="skeleton skeleton-circle" style="width: 40px; height: 40px;"></div>
+                        <div style="flex: 1;">
+                            <div class="skeleton skeleton-text" style="width: 60%; height: 16px; margin-bottom: 8px;"></div>
+                            <div class="skeleton skeleton-text" style="width: 40%; height: 12px;"></div>
+                        </div>
                     </div>
-                </div>
-            `;
+                `;
+            } else {
+                // 不带图标的骨架屏（适用于配置文件列表）
+                item.innerHTML = `
+                    <div style="display: flex; flex-direction: column; gap: 8px; width: 100%; padding: 12px 0;">
+                        <div class="skeleton skeleton-text" style="width: 50%; height: 16px;"></div>
+                        <div class="skeleton skeleton-text" style="width: 70%; height: 12px;"></div>
+                    </div>
+                `;
+            }
             container.appendChild(item);
         }
     }
