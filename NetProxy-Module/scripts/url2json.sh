@@ -954,9 +954,9 @@ esac
 
 # 如果没有通过 -o 参数指定输出文件，则使用 REMARK 作为文件名
 if [ "$OUTPUT_FILE" = "config.json" ]; then
-    # 清理文件名中的文件系统不安全字符和空格
-    # 移除: / \ : * ? " < > | 并将空格转为下划线
-    SAFE_REMARK=$(echo "$REMARK" | sed 's/[\/\\:*?"<>| ]/_/g')
+    # 清理文件名中的文件系统不安全字符、空格和回车符
+    # 移除: / \ : * ? " < > | \r 并将空格转为下划线
+    SAFE_REMARK=$(echo "$REMARK" | tr -d '\r' | sed 's/[\/\\:*?"<>| ]/_/g')
     
     # 使用指定目录或默认目录
     if [ -n "$OUTPUT_DIR" ]; then

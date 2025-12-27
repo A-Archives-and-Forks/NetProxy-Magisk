@@ -202,8 +202,8 @@ update_subscription() {
         exit 1
     fi
     
-    # 解码 Base64
-    local decoded=$(base64_decode "$content")
+    # 解码 Base64 并去除 Windows 回车符
+    local decoded=$(base64_decode "$content" | tr -d '\r')
     
     if [ -z "$decoded" ]; then
         echo "错误: Base64 解码失败"
