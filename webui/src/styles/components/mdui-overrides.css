@@ -207,6 +207,16 @@ mdui-menu-item {
   color: var(--monet-on-surface, var(--mdui-color-on-surface)) !important;
 }
 
+/* 修复全局 CSS 重置导致的菜单项文字截断问题 */
+mdui-menu-item::part(container) {
+  padding: 8px 12px !important;
+}
+
+mdui-menu-item::part(label) {
+  overflow: visible !important;
+  line-height: normal !important;
+}
+
 mdui-menu-item:hover {
   background-color: var(--monet-surface-container-high, var(--mdui-color-surface-container-high)) !important;
 }
