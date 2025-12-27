@@ -11,7 +11,7 @@
 
 <p align="center">
   <a href="https://github.com/Fanju6/NetProxy-Magisk/releases">
-    <img src="https://img.shields.io/github/v/release/Fanju6/NetProxy-Magisk?style=flat-square&label=版本&color=blue" alt="Latest Release" />
+    <img src="https://img.shields.io/github/v/release/Fanju6/NetProxy-Magisk?style=flat-square&label=Release&color=blue" alt="Latest Release" />
   </a>
   <a href="https://github.com/Fanju6/NetProxy-Magisk/releases">
     <img src="https://img.shields.io/github/downloads/Fanju6/NetProxy-Magisk/total?style=flat-square&color=green" alt="Downloads" />
