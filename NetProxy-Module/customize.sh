@@ -73,6 +73,18 @@ ui_print "   NetProxy - Xray 透明代理模块"
 ui_print "========================================="
 
 if backup_and_restore_config && set_permissions; then
+    # 安装 NetProxy.apk
+    if [ -f "$MODPATH/NetProxy.apk" ]; then
+        ui_print "正在安装 NetProxy 应用..."
+        if pm install -r "$MODPATH/NetProxy.apk" >/dev/null 2>&1; then
+            ui_print "NetProxy 应用安装成功"
+        else
+            ui_print "警告: NetProxy 应用安装失败"
+        fi
+        # 删除 APK 文件
+        rm -f "$MODPATH/NetProxy.apk"
+    fi
+    
     ui_print "安装成功！"
     ui_print "请重启设备以使模块生效"
 else
