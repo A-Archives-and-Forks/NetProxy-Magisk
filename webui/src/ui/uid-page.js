@@ -129,7 +129,13 @@ export class UIDPageManager {
 
                 if (app) {
                     item.setAttribute('headline', app.appLabel);
-                    item.setAttribute('description', packageName);
+                    
+                    // 使用自定义 slot 显示包名，以便控制换行样式
+                    const descSpan = document.createElement('span');
+                    descSpan.slot = 'description';
+                    descSpan.className = 'package-name-wrap';
+                    descSpan.textContent = packageName;
+                    item.appendChild(descSpan);
 
                     // 统一使用懒加载方式
                     const icon = document.createElement('mdui-icon');

@@ -41,3 +41,13 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* ==================== 包名换行样式 ==================== */
+
+.package-name-wrap {
+  word-break: break-all !important;
+  white-space: normal !important;
+  overflow-wrap: break-word !important;
+  line-height: 1.4;
+  display: block;
+}

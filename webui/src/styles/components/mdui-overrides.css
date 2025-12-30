@@ -173,6 +173,33 @@ mdui-list-item::part(headline) {
 
 mdui-list-item::part(description) {
   color: var(--monet-on-surface-variant, var(--mdui-color-on-surface-variant)) !important;
+  white-space: normal !important;
+  overflow-wrap: break-word !important;
+  word-break: break-all !important;
+  line-height: 1.4 !important;
+}
+
+/* 列表项内容区域 - 确保充分利用可用宽度 */
+mdui-list-item::part(body) {
+  min-width: 0 !important;
+  overflow: visible !important;
+  flex: 1 1 auto !important;
+}
+
+/* 列表项末尾图标区域 - 减少占用空间 */
+mdui-list-item::part(end-icon) {
+  flex-shrink: 0 !important;
+  margin-left: 8px !important;
+}
+
+/* UID 列表项 - 优化布局 */
+#uid-list mdui-list-item {
+  --mdui-list-item-container-padding-right: 8px;
+}
+
+#uid-list mdui-list-item mdui-button-icon[slot="end-icon"] {
+  margin-left: 4px !important;
+  margin-right: -8px !important;
 }
 
 mdui-list-item[clickable] {
