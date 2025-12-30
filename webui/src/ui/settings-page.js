@@ -363,6 +363,15 @@ export class SettingsPageManager {
                 });
             }
         }
+
+        // 代理模式选择器
+        const proxyModeGroup = document.getElementById('proxy-mode-settings');
+        if (proxyModeGroup) {
+            proxyModeGroup.addEventListener('change', async (e) => {
+                const value = e.target.value;
+                await this.setProxyMode(value);
+            });
+        }
     }
 
     async loadProxySettings() {
@@ -374,6 +383,17 @@ export class SettingsPageManager {
                 if (switchEl) {
                     switchEl.checked = settings[key] === true;
                 }
+            }
+
+            // 加载代理模式
+            const proxyMode = await KSUService.getProxyMode();
+            const proxyModeGroup = document.getElementById('proxy-mode-settings');
+            const proxyModeDesc = document.getElementById('proxy-mode-desc-settings');
+            if (proxyModeGroup) {
+                proxyModeGroup.value = String(proxyMode);
+            }
+            if (proxyModeDesc) {
+                this.updateProxyModeDesc(proxyMode);
             }
         } catch (error) {
             console.error('加载代理设置失败:', error);
@@ -393,6 +413,28 @@ export class SettingsPageManager {
                 switchEl.checked = !value;
             }
         }
+    }
+
+    async setProxyMode(value) {
+        try {
+            await KSUService.setProxyMode(value);
+            this.updateProxyModeDesc(value);
+            const modeNames = { '0': '自动', '1': 'TPROXY', '2': 'REDIRECT' };
+            toast(`代理模式已设为: ${modeNames[value] || value}`);
+        } catch (error) {
+            toast('设置代理模式失败: ' + error.message);
+        }
+    }
+
+    updateProxyModeDesc(mode) {
+        const desc = document.getElementById('proxy-mode-desc-settings');
+        if (!desc) return;
+        const descs = {
+            '0': '自动检测最佳代理方式',
+            '1': '强制使用 TPROXY 透明代理',
+            '2': '强制使用 REDIRECT 重定向'
+        };
+        desc.textContent = descs[String(mode)] || descs['0'];
     }
 
     // ===================== 主题页面 =====================
@@ -480,12 +522,12 @@ export class SettingsPageManager {
     updateMonetSwitchState(mode) {
         const monetSwitch = document.getElementById('monet-switch');
         const monetDescription = document.getElementById('monet-description');
-        
+
         if (monetSwitch) {
             // 莫奈取色仅在自动模式下可用
             const isAutoMode = mode === 'auto';
             monetSwitch.disabled = !isAutoMode;
-            
+
             if (monetDescription) {
                 if (isAutoMode) {
                     monetDescription.textContent = '使用系统壁纸颜色作为主题色';
@@ -504,7 +546,7 @@ export class SettingsPageManager {
                 }
             }
         }
-        
+
         this.updateColorPaletteVisibility();
     }
 
@@ -512,7 +554,7 @@ export class SettingsPageManager {
         const colorPaletteCard = document.getElementById('color-palette-card');
         const monetSwitch = document.getElementById('monet-switch');
         const savedTheme = localStorage.getItem('theme') || 'auto';
-        
+
         if (colorPaletteCard && monetSwitch) {
             // 当莫奈取色启用且处于自动模式时，隐藏颜色选择面板
             const shouldHide = monetSwitch.checked && savedTheme === 'auto';
@@ -522,7 +564,7 @@ export class SettingsPageManager {
 
     applyMonetSetting(enabled) {
         localStorage.setItem('monetEnabled', enabled.toString());
-        
+
         if (enabled) {
             // 启用莫奈取色：添加 monet-enabled 类，让 monet.css 使用 KernelSU 变量
             document.documentElement.classList.add('monet-enabled');
@@ -537,7 +579,7 @@ export class SettingsPageManager {
             }
             toast('已禁用莫奈取色');
         }
-        
+
         this.updateColorPaletteVisibility();
     }
 
@@ -574,7 +616,7 @@ export class SettingsPageManager {
 
         // 检查是否启用莫奈取色
         const monetEnabled = localStorage.getItem('monetEnabled') === 'true';
-        
+
         // 只有在自动模式且莫奈取色启用时，才添加 monet-enabled 类
         if (savedTheme === 'auto' && monetEnabled) {
             document.documentElement.classList.add('monet-enabled');

@@ -531,6 +531,19 @@
             </div>
           </mdui-card>
 
+          <!-- 代理模式选择 -->
+          <mdui-list style="margin-top: 16px;">
+            <mdui-list-item>
+              代理模式
+              <span slot="description" id="proxy-mode-desc-settings">设置代理模式</span>
+              <mdui-select slot="end-icon" id="proxy-mode-settings" value="0" style="width: 120px;">
+                <mdui-menu-item value="0">自动</mdui-menu-item>
+                <mdui-menu-item value="1">TPROXY</mdui-menu-item>
+                <mdui-menu-item value="2">REDIRECT</mdui-menu-item>
+              </mdui-select>
+            </mdui-list-item>
+          </mdui-list>
+
           <mdui-list id="proxy-settings-list" style="margin-top: 16px;">
             <mdui-list-item>
               移动数据
@@ -611,7 +624,8 @@
               <div style="display: flex; align-items: center; justify-content: space-between;">
                 <div style="flex: 1;">
                   <h3 style="margin: 0 0 4px;">莫奈取色</h3>
-                  <p id="monet-description" style="margin: 0; color: var(--mdui-color-on-surface-variant); font-size: 14px;">
+                  <p id="monet-description"
+                    style="margin: 0; color: var(--mdui-color-on-surface-variant); font-size: 14px;">
                     使用系统壁纸颜色作为主题色（仅自动模式可用）
                   </p>
                 </div>

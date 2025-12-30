@@ -200,20 +200,20 @@ export class KSUService {
         }
     }
 
-    // 获取代理模式
-    static async getProxyMode() {
+    // 获取分应用代理模式 (blacklist/whitelist)
+    static async getAppProxyMode() {
         try {
             const content = await this.exec(`cat ${this.MODULE_PATH}/config/tproxy.conf`);
-            const match = content.match(/APP_PROXY_MODE="?(\w+)"?/);
+            const match = content.match(/^APP_PROXY_MODE="?(\w+)"?/m);
             return match ? match[1] : 'blacklist';
         } catch (error) {
             return 'blacklist';
         }
     }
 
-    // 设置代理模式
-    static async setProxyMode(mode) {
-        await this.exec(`sed -i 's/APP_PROXY_MODE=.*/APP_PROXY_MODE="${mode}"/' ${this.MODULE_PATH}/config/tproxy.conf`);
+    // 设置分应用代理模式
+    static async setAppProxyMode(mode) {
+        await this.exec(`sed -i 's/^APP_PROXY_MODE=.*/APP_PROXY_MODE="${mode}"/' ${this.MODULE_PATH}/config/tproxy.conf`);
     }
 
     // 获取代理应用列表（包名）- 根据模式返回 BYPASS 或 PROXY 列表
@@ -796,6 +796,23 @@ export class KSUService {
         const upperKey = key.toUpperCase();
         const numValue = value ? '1' : '0';
         await this.exec(`sed -i 's/${upperKey}=.*/${upperKey}=${numValue}/' ${this.MODULE_PATH}/config/tproxy.conf`);
+        return { success: true };
+    }
+
+    // 获取代理模式 (0=自动, 1=TPROXY, 2=REDIRECT)
+    static async getProxyMode() {
+        try {
+            const content = await this.exec(`cat ${this.MODULE_PATH}/config/tproxy.conf`);
+            const match = content.match(/PROXY_MODE=(\d+)/);
+            return match ? parseInt(match[1]) : 0;
+        } catch (error) {
+            return 0;
+        }
+    }
+
+    // 设置代理模式
+    static async setProxyMode(value) {
+        await this.exec(`sed -i 's/^PROXY_MODE=.*/PROXY_MODE=${value}/' ${this.MODULE_PATH}/config/tproxy.conf`);
         return { success: true };
     }
 

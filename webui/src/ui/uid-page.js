@@ -36,7 +36,7 @@ export class UIDPageManager {
             this.ui.showSkeleton(listEl, currentCount);
 
             // 获取代理模式
-            this.proxyMode = await KSUService.getProxyMode();
+            this.proxyMode = await KSUService.getAppProxyMode();
 
             // 更新模式开关和描述
             if (modeSwitch) {
@@ -129,7 +129,7 @@ export class UIDPageManager {
 
                 if (app) {
                     item.setAttribute('headline', app.appLabel);
-                    
+
                     // 使用自定义 slot 显示包名，以便控制换行样式
                     const descSpan = document.createElement('span');
                     descSpan.slot = 'description';
@@ -192,7 +192,7 @@ export class UIDPageManager {
 
     async setProxyMode(mode) {
         try {
-            await KSUService.setProxyMode(mode);
+            await KSUService.setAppProxyMode(mode);
             this.proxyMode = mode;
 
             // 更新 UI
