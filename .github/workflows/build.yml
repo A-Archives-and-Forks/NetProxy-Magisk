@@ -4,26 +4,52 @@ on:
   workflow_dispatch:
   push:
     branches: [ main ]
+    paths:
+      - 'NetProxy-Module/**'
+      - 'webui/**'
   release:
     types: [published]
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    # 仅在 push 或手动触发时构建，Release 发布时跳过
-    if: github.event_name != 'release'
-    steps:
-      - name: 拉取仓库代码
-        uses: actions/checkout@v5
+permissions:
+  contents: write
 
-      - name: 设置 Node.js 环境
+jobs:
+  check-changes:
+    name: 检查变更
+    runs-on: ubuntu-latest
+    outputs:
+      webui: ${{ steps.filter.outputs.webui }}
+      module: ${{ steps.filter.outputs.module }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            webui:
+              - 'webui/**'
+            module:
+              - 'NetProxy-Module/**'
+
+  update-webui:
+    name: 更新 WebUI
+    needs: check-changes
+    if: needs.check-changes.outputs.webui == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+
+      - name: 设置 Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
           cache-dependency-path: webui/package-lock.json
-
-      - name: 设置 Python 环境
+      
+      - name: 设置 Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.x'
@@ -32,9 +58,64 @@ jobs:
         working-directory: webui
         run: npm install
 
-      - name: 构建 WebUI
-        working-directory: webui
-        run: python build_webui.py
+      - name: 构建 WebUI 并输出到 webroot
+        # build_webui.py 会自动清理 NetProxy-Module/webroot 并重新生成文件
+        run: python webui/build_webui.py
+
+      - name: 上传 WebUI 产物 (Artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: webui-build
+          path: NetProxy-Module/webroot/
+
+      - name: 推送 WebUI 产物到仓库
+        run: |
+          git config --global user.name "NetProxyBot"
+          git config --global user.email "bot@netproxy.io"
+          
+          # 添加变更（包括删除和新增）
+          git add NetProxy-Module/webroot
+          
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "chore: update webui build artifacts"
+            git push
+          fi
+
+  build-module:
+    name: 构建模块
+    needs: [check-changes, update-webui]
+    # 触发条件：
+    # 1. NetProxy-Module 变更 (check: module=true) -> 无论 update-webui 是 skipped 还是 success 都应运行
+    # 2. WebUI 变更 (check: webui=true) -> update-webui 必须 success
+    # 3. Release/Workflow Dispatch
+    if: |
+      always() && 
+      !failure() && 
+      !cancelled() && 
+      (
+        (needs.check-changes.outputs.module == 'true') || 
+        (needs.check-changes.outputs.webui == 'true' && needs.update-webui.result == 'success') || 
+        github.event_name == 'release' || 
+        github.event_name == 'workflow_dispatch'
+      )
+    runs-on: ubuntu-latest
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+      
+      - name: 下载 WebUI 产物
+        if: ${{ needs.check-changes.outputs.webui == 'true' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: webui-build
+          path: NetProxy-Module/webroot/
+
+      - name: 设置 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
 
       - name: 上传构建产物
         uses: actions/upload-artifact@v4
@@ -43,57 +124,82 @@ jobs:
           path: NetProxy-Module/
 
   notify:
+    name: 发送通知
     runs-on: ubuntu-latest
-    needs: build
-    # 允许 notify 在 build 跳过时也能运行
+    needs: [build-module, update-webui]
     if: always()
     steps:
-      - name: 构建成功通知
-        if: ${{ needs.build.result == 'success' && github.event_name == 'push' }}
-        uses: appleboy/telegram-action@master
+      - name: 下载构建产物
+        if: ${{ needs.build-module.result == 'success' }}
+        uses: actions/download-artifact@v4
         with:
-          to: ${{ secrets.TG_CHAT_ID }}
-          token: ${{ secrets.TG_BOT_TOKEN }}
-          format: markdown
-          message: |
-            🤖 *NetProxyBot 通知*
-            ✅ 构建成功！
-            
-            📦 仓库: `${{ github.repository }}`
-            🌿 分支: `${{ github.ref_name }}`
-            🧾 Commit: `${{ github.sha }}`
-            
-            🔗 [查看 Actions](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          name: NetProxy-Module
+          path: NetProxy-Module
 
-      - name: 构建失败通知
-        if: ${{ needs.build.result == 'failure' && github.event_name != 'release' }}
-        uses: appleboy/telegram-action@master
+      - name: 打包模块
+        if: ${{ needs.build-module.result == 'success' }}
+        run: |
+          cd NetProxy-Module
+          zip -r ../NetProxy-Module.zip .
+          cd ..
+
+      - name: 发送模块到 Telegram
+        if: ${{ needs.build-module.result == 'success' }}
+        env:
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+        run: |
+          CAPTION="模块构建成功通知
+          
+          说明:
+          \`\`\`
+          $COMMIT_MSG
+          \`\`\`
+
+          [提交记录](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})
+          [构建日志](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+          
+          curl -v -F "chat_id=${{ secrets.TG_CHAT_ID }}" \
+               -F "document=@NetProxy-Module.zip" \
+               -F "message_thread_id=2275" \
+               -F "parse_mode=Markdown" \
+               -F "caption=$CAPTION" \
+               https://api.telegram.org/bot${{ secrets.TG_BOT_TOKEN }}/sendDocument
+
+      - name: 失败通知
+        if: ${{ needs.build-module.result == 'failure' || needs.update-webui.result == 'failure' }}
+        env:
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+        uses: cbrgm/telegram-github-action@v1
         with:
-          to: ${{ secrets.TG_CHAT_ID }}
           token: ${{ secrets.TG_BOT_TOKEN }}
-          format: markdown
+          to: ${{ secrets.TG_CHAT_ID }}
+          thread-id: 2275
+          parse-mode: markdown
           message: |
-            🤖 *NetProxyBot 通知*
-            ❌ 构建失败！
+            模块构建失败通知！
             
-            📦 仓库: `${{ github.repository }}`
-            🌿 分支: `${{ github.ref_name }}`
-            🧾 Commit: `${{ github.sha }}`
-            
-            🔗 [查看 Actions](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            说明:
+            \`\`\`
+            $COMMIT_MSG
+            \`\`\`
+
+            [提交记录](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})
+            [构建日志](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
 
       - name: Release 发布通知
         if: ${{ github.event_name == 'release' }}
-        uses: appleboy/telegram-action@master
+        uses: cbrgm/telegram-github-action@v1
         with:
-          to: ${{ secrets.TG_CHAT_ID }}
           token: ${{ secrets.TG_BOT_TOKEN }}
-          format: markdown
+          to: ${{ secrets.TG_CHAT_ID }}
+          thread-id: 2343
+          parse-mode: markdown
           message: |
-            🎉 *NetProxyBot 通知*
-            🏷️ 新版本发布！
+            新版本发布通知！
             
-            🔖 版本: `${{ github.event.release.tag_name }}`
-            📝 说明: `${{ github.event.release.name }}`
+            版本: `${{ github.event.release.tag_name }}`
             
-            ⬇️ 下载: [Release 页面](https://github.com/${{ github.repository }}/releases/latest)
+            日志: 
+            ${{ github.event.release.body }}
+            
+            [下载地址](${{ github.server_url }}/${{ github.repository }}/releases/latest)
