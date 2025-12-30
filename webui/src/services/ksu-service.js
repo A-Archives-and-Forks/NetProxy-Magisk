@@ -936,4 +936,48 @@ export class KSUService {
             return { success: false, error: error.message };
         }
     }
+
+    // ===================== 导出功能 =====================
+
+    // 导出日志到 Download 目录
+    static async exportLogs() {
+        try {
+            const timestamp = new Date().toISOString().replace(/[:-]/g, '').replace('T', '_').slice(0, 15);
+            const filename = `netproxy_logs_${timestamp}.tar.gz`;
+            const downloadPath = '/storage/emulated/0/Download';
+            const outputPath = `${downloadPath}/${filename}`;
+
+            // 确保 Download 目录存在
+            await this.exec(`mkdir -p ${downloadPath}`);
+
+            // 使用 tar 压缩 logs 文件夹
+            await this.exec(`cd ${this.MODULE_PATH} && tar -czf ${outputPath} logs/`);
+
+            return { success: true, path: outputPath };
+        } catch (error) {
+            console.error('导出日志失败:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    // 导出日志与配置到 Download 目录
+    static async exportAll() {
+        try {
+            const timestamp = new Date().toISOString().replace(/[:-]/g, '').replace('T', '_').slice(0, 15);
+            const filename = `netproxy_backup_${timestamp}.tar.gz`;
+            const downloadPath = '/storage/emulated/0/Download';
+            const outputPath = `${downloadPath}/${filename}`;
+
+            // 确保 Download 目录存在
+            await this.exec(`mkdir -p ${downloadPath}`);
+
+            // 使用 tar 同时压缩 logs 和 config 文件夹
+            await this.exec(`cd ${this.MODULE_PATH} && tar -czf ${outputPath} logs/ config/`);
+
+            return { success: true, path: outputPath };
+        } catch (error) {
+            console.error('导出日志与配置失败:', error);
+            return { success: false, error: error.message };
+        }
+    }
 }

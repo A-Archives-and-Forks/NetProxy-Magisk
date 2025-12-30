@@ -385,7 +385,14 @@
             </mdui-collapse-item>
           </mdui-collapse>
 
-          <div style="padding: 16px; text-align: center;">
+          <div
+            style="padding: 16px; text-align: center; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+            <mdui-button variant="tonal" id="export-logs-btn" icon="folder_zip">
+              保存日志
+            </mdui-button>
+            <mdui-button variant="tonal" id="export-all-btn" icon="backup">
+              保存日志与配置
+            </mdui-button>
             <mdui-button variant="outlined" id="logs-back-btn" icon="arrow_back">
               返回设置
             </mdui-button>
