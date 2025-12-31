@@ -74,48 +74,7 @@ export class KSUService {
         }
     }
 
-    static async deleteUID(uid) {
-        console.log('>>> KSUService.deleteUID START, uid:', uid);
-        try {
-            const uidListPath = `${this.MODULE_PATH}/config/uid_list.conf`;
-            const cmd = `su -c "sed -i '/^${uid}$/d' '${uidListPath}'"`;
-            console.log('>>> Executing command:', cmd);
-            await exec(cmd);
-            console.log('>>> Delete UID successful (no exception)');
-            return { success: true };
-        } catch (error) {
-            console.error('>>> deleteUID exception:', error);
-            return { success: false, error: error.message };
-        }
-    }
 
-    // 即时应用iptables规则（添加UID）
-    static async applyUIDIptables(uid) {
-        try {
-            console.log('Applying iptables rule for UID:', uid);
-            const cmd = `su -c "iptables -t nat -I OUTPUT -p tcp -m owner --uid-owner ${uid} -j RETURN"`;
-            await exec(cmd);
-            console.log('Iptables rule applied for UID:', uid);
-            return { success: true };
-        } catch (error) {
-            console.error('Failed to apply iptables rule:', error);
-            return { success: false, error: error.message };
-        }
-    }
-
-    // 即时删除iptables规则（删除UID）
-    static async removeUIDIptables(uid) {
-        try {
-            console.log('Removing iptables rule for UID:', uid);
-            const cmd = `su -c "iptables -t nat -D OUTPUT -p tcp -m owner --uid-owner ${uid} -j RETURN"`;
-            await exec(cmd);
-            console.log('Iptables rule removed for UID:', uid);
-            return { success: true };
-        } catch (error) {
-            console.error('Failed to remove iptables rule:', error);
-            return { success: false, error: error.message };
-        }
-    }
 
     // 读取配置文件（从 outbounds 目录）
     static async readConfig(filename) {
@@ -222,6 +181,7 @@ export class KSUService {
     }
 
     // 获取代理应用列表（包名）- 根据模式返回 BYPASS 或 PROXY 列表
+    // 获取代理应用列表 - 返回 Array<{ packageName, userId }>
     static async getProxyApps() {
         try {
             const content = await this.exec(`cat ${this.MODULE_PATH}/config/tproxy.conf`);
@@ -232,7 +192,14 @@ export class KSUService {
             const match = content.match(new RegExp(`${listKey}="([^"]*)"`));
 
             if (match && match[1]) {
-                return match[1].split(' ').filter(pkg => pkg.trim());
+                return match[1].split(' ').filter(item => item.trim()).map(item => {
+                    const parts = item.split(':');
+                    if (parts.length === 2) {
+                        return { userId: parts[0], packageName: parts[1] };
+                    }
+                    // 兼容旧格式 (纯包名)，默认为主用户 0
+                    return { userId: '0', packageName: item };
+                });
             }
             return [];
         } catch (error) {
@@ -240,31 +207,41 @@ export class KSUService {
         }
     }
 
-    // 添加代理应用
-    static async addProxyApp(packageName) {
+    // 添加代理应用 (userId:packageName)
+    static async addProxyApp(packageName, userId = '0') {
         const content = await this.exec(`cat ${this.MODULE_PATH}/config/tproxy.conf`);
         const mode = (content.match(/APP_PROXY_MODE="?(\w+)"?/) || [])[1] || 'blacklist';
         const listKey = mode === 'blacklist' ? 'BYPASS_APPS_LIST' : 'PROXY_APPS_LIST';
         const match = content.match(new RegExp(`${listKey}="([^"]*)"`));
-        const currentList = match ? match[1] : '';
+        const currentListStr = match ? match[1] : '';
+        const currentList = currentListStr.split(' ').filter(i => i.trim());
 
-        if (currentList.split(' ').includes(packageName)) {
-            throw new Error('应用已存在');
+        const newItem = `${userId}:${packageName}`;
+        if (currentList.includes(newItem)) {
+            return; // 已存在
         }
 
-        const newList = currentList ? `${currentList} ${packageName}` : packageName;
+        const newList = currentList.length > 0 ? `${currentListStr} ${newItem}` : newItem;
         await this.exec(`sed -i 's/${listKey}="[^"]*"/${listKey}="${newList}"/' ${this.MODULE_PATH}/config/tproxy.conf`);
     }
 
     // 删除代理应用
-    static async removeProxyApp(packageName) {
+    static async removeProxyApp(packageName, userId = '0') {
         const content = await this.exec(`cat ${this.MODULE_PATH}/config/tproxy.conf`);
         const mode = (content.match(/APP_PROXY_MODE="?(\w+)"?/) || [])[1] || 'blacklist';
         const listKey = mode === 'blacklist' ? 'BYPASS_APPS_LIST' : 'PROXY_APPS_LIST';
         const match = content.match(new RegExp(`${listKey}="([^"]*)"`));
-        const currentList = match ? match[1] : '';
+        const currentListStr = match ? match[1] : '';
+        const currentList = currentListStr.split(' ').filter(i => i.trim());
 
-        const newList = currentList.split(' ').filter(pkg => pkg !== packageName).join(' ');
+        const targetItem = `${userId}:${packageName}`;
+        // 过滤掉完全匹配的项
+        const newList = currentList.filter(item => {
+            // 兼容处理：如果列表中是纯包名 (旧数据)，我们也尝试匹配
+            if (item === packageName && userId === '0') return false;
+            return item !== targetItem;
+        }).join(' ');
+
         await this.exec(`sed -i 's/${listKey}="[^"]*"/${listKey}="${newList}"/' ${this.MODULE_PATH}/config/tproxy.conf`);
     }
 
@@ -541,164 +518,156 @@ export class KSUService {
     }
 
     // 获取已安装应用列表
-    static async getInstalledApps() {
-        // 1. 获取基础包列表（包名 + 可选的 UID）
-        let basePackages = [];
-
-        // 尝试 KSU listPackages
+    // 获取已安装应用列表
+    static async getUsers() {
         try {
-            const pkgs = await listPackages('all');
-            if (pkgs && pkgs.length > 0) {
-                basePackages = pkgs.map(p => ({ packageName: p, uid: 0 }));
+            const output = await this.exec('pm list users');
+            const users = [];
+            // Output format:
+            // Users:
+            // 	UserInfo{0:Owner:13} running
+            // 	UserInfo{999:MultiApp:4001010} running
+            const lines = output.split('\n');
+            for (const line of lines) {
+                const match = line.match(/UserInfo\{(\d+):([^:]+):/);
+                if (match) {
+                    users.push({
+                        id: match[1],
+                        name: match[2]
+                    });
+                }
             }
-        } catch (e) {
-            console.warn('listPackages failed', e);
+            return users;
+        } catch (error) {
+            console.error('Failed to get users:', error);
+            return [{ id: '0', name: 'Owner' }];
         }
+    }
 
-        // 如果 KSU 失败或为空，尝试 packages.list
-        if (basePackages.length === 0) {
-            const systemApps = await this.getPackagesFromSystemList();
-            if (systemApps.length > 0) {
-                basePackages = systemApps; // 包含 packageName 和 uid
+    static async getInstalledApps(userId = '0', showSystem = false) {
+        // 构建 pm options
+        // if showSystem is true -> list packages -s (仅系统)
+        // if showSystem is false -> list packages -3 (仅第三方)
+
+        const filter = showSystem ? '-s' : '-3';
+        const cmd = `pm list packages --user ${userId} ${filter}`;
+
+        try {
+            const output = await this.exec(cmd);
+            const lines = output.split('\n');
+            const apps = [];
+
+            for (const line of lines) {
+                // package:com.android.chrome
+                const packageName = line.replace(/^package:/, '').trim();
+                if (!packageName) continue;
+
+                apps.push({
+                    packageName: packageName,
+                    appLabel: packageName, // 懒加载 Label
+                    userId: userId,
+                    icon: null // 懒加载 Icon
+                });
             }
-        }
 
-        if (basePackages.length === 0) return [];
 
-        // 2. 丰富应用信息 (Label, Icon, UID)
+            // 3. 增强应用信息 (Label, Icon)
+            // 场景 A: WebUI X 环境
+            if (typeof $packageManager !== 'undefined' && apps.length > 0) {
+                // 仅仅对前 N 个进行同步获取，避免阻塞？ 或者全部异步获取？
+                // 批量获取应用信息
 
-        // 场景 A: WebUI X 环境
-        if (typeof $packageManager !== 'undefined') {
-            const apps = await Promise.all(basePackages.map(async pkg => {
-                try {
-                    // 尝试获取应用信息
-                    const info = $packageManager.getApplicationInfo(pkg.packageName, 0, 0);
-
-                    // 获取 Label
-                    let label = pkg.packageName;
+                const enrichedApps = await Promise.all(apps.map(async app => {
                     try {
-                        // 尝试多种获取 Label 的方式，应对不同版本
+                        const info = $packageManager.getApplicationInfo(app.packageName, 0, parseInt(app.userId));
+                        let label = app.packageName;
                         if (info.getLabel && typeof info.getLabel === 'function') label = info.getLabel();
                         else if (info.loadLabel && typeof info.loadLabel === 'function') label = info.loadLabel($packageManager);
                         else if (info.label) label = info.label;
                         else if (info.toString() !== '[object Object]') label = info.toString();
-                    } catch (err) {
-                        // 忽略
-                    }
 
-                    // 获取 UID (如果 basePackages 里没有)
-                    let uid = pkg.uid;
-                    if (!uid || uid === 0) {
-                        if (info.uid) uid = info.uid;
-                        else if (info.applicationInfo && info.applicationInfo.uid) uid = info.applicationInfo.uid;
-                    }
-
-                    return {
-                        packageName: pkg.packageName,
-                        appLabel: label || pkg.packageName,
-                        uid: uid,
-                        icon: null // 懒加载
-                    };
-                } catch (e) {
-                    // 如果 getApplicationInfo 失败，但我们有 basePackage 信息，还是返回它
-                    return {
-                        packageName: pkg.packageName,
-                        appLabel: pkg.packageName,
-                        uid: pkg.uid,
-                        icon: null
-                    };
-                }
-            }));
-
-            const validApps = apps.filter(a => a);
-
-            if (validApps.length > 0) {
-                // 尝试使用 KSU API 或 packages.list 填充缺失的 UID
-                const appsWithMissingUid = validApps.filter(a => !a.uid);
-                if (appsWithMissingUid.length > 0) {
-                    try {
-                        // 策略1: KSU API
-                        const ksuApps = await getPackagesInfo(appsWithMissingUid.map(a => a.packageName));
-                        const uidMap = {};
-                        ksuApps.forEach(a => uidMap[a.packageName] = a.uid);
-
-                        // 策略2: packages.list（如果 KSU API 遗漏或失败）
-                        if (Object.keys(uidMap).length < appsWithMissingUid.length) {
-                            const systemApps = await this.getPackagesFromSystemList();
-                            systemApps.forEach(a => {
-                                if (!uidMap[a.packageName]) uidMap[a.packageName] = a.uid;
-                            });
-                        }
-
-                        appsWithMissingUid.forEach(a => {
-                            if (uidMap[a.packageName]) a.uid = uidMap[a.packageName];
-                        });
+                        app.appLabel = label || app.packageName;
+                        // Icon 依然懒加载
                     } catch (e) {
-                        console.warn('Failed to fetch UIDs via KSU API', e);
-                        // 回退到 packages.list 获取 UID
-                        const systemApps = await this.getPackagesFromSystemList();
-                        const uidMap = {};
-                        systemApps.forEach(a => uidMap[a.packageName] = a.uid);
-                        appsWithMissingUid.forEach(a => {
-                            if (uidMap[a.packageName]) a.uid = uidMap[a.packageName];
-                        });
+                        // 忽略错误，保持原样
                     }
-                }
-                return validApps;
+                    return app;
+                }));
+                return enrichedApps;
             }
-            console.warn('WebUI X API returned 0 valid apps, falling back to KSU API...');
-        }
 
-        // 场景 B: KSU 环境 (或者 WebUI X 彻底失败)
-        try {
-            // 提取包名列表
-            const packageNames = basePackages.map(p => p.packageName);
-            const appsInfo = await getPackagesInfo(packageNames);
+            // 场景 B: KSU API 环境 (getPackagesInfo)
+            // 尝试用 KSU API 获取 Label/Icon
+            try {
+                // 仅对 main user 或者 unique package names 请求
+                const uniquePkgs = [...new Set(apps.map(a => a.packageName))];
+                if (uniquePkgs.length > 0) {
+                    const infos = await getPackagesInfo(uniquePkgs);
+                    const infoMap = new Map();
+                    infos.forEach(i => infoMap.set(i.packageName, i));
 
-            return appsInfo.map(app => ({
-                packageName: app.packageName,
-                appLabel: app.appLabel,
-                uid: app.uid,
-                icon: `ksu://icon/${app.packageName}`
-            }));
-        } catch (error) {
-            console.error('Failed to get apps via KSU API:', error);
-            // Final fallback: 返回 basePackages (可能只有包名和UID)
-            return basePackages.map(p => ({
-                packageName: p.packageName,
-                appLabel: p.packageName,
-                uid: p.uid,
-                icon: null
-            }));
-        }
-    }
-
-    static async getPackagesFromSystemList() {
-        try {
-            const content = await this.exec('cat /data/system/packages.list');
-            const lines = content.split('\n');
-            const apps = [];
-            for (const line of lines) {
-                const parts = line.split(/\s+/);
-                if (parts.length >= 2) {
-                    const packageName = parts[0];
-                    const uid = parseInt(parts[1]);
-                    if (packageName && !isNaN(uid)) {
-                        apps.push({
-                            packageName,
-                            appLabel: packageName, // Fallback label
-                            uid,
-                            icon: null
-                        });
-                    }
+                    apps.forEach(app => {
+                        const info = infoMap.get(app.packageName);
+                        if (info) {
+                            app.appLabel = info.appLabel || app.appLabel;
+                            // KSU API 返回的 icon 是 ksu://icon/...
+                            app.icon = `ksu://icon/${app.packageName}`;
+                        }
+                    });
                 }
+            } catch (e) {
+                console.warn('Failed to fetch details via KSU API:', e);
             }
+
             return apps;
-        } catch (e) {
-            console.error('Failed to read packages.list:', e);
+        } catch (error) {
+            console.error('Failed to get installed apps:', error);
             return [];
         }
     }
+
+    // 补充 fetchAppDetails 用于懒加载或者增强信息
+    static async fetchAppDetails(apps) {
+        // 1. 尝试 WebUI X 环境 
+        if (typeof $packageManager !== 'undefined') {
+            await Promise.all(apps.map(async app => {
+                try {
+                    const info = $packageManager.getApplicationInfo(app.packageName, 0, parseInt(app.userId));
+                    let label = app.packageName;
+                    if (info.getLabel && typeof info.getLabel === 'function') label = info.getLabel();
+                    else if (info.loadLabel && typeof info.loadLabel === 'function') label = info.loadLabel($packageManager);
+                    else if (info.label) label = info.label;
+
+                    app.appLabel = label || app.packageName;
+                } catch (e) { }
+            }));
+            return apps;
+        }
+
+        // 2. 尝试 KSU API 环境
+        try {
+            const uniquePkgs = [...new Set(apps.map(a => a.packageName))];
+            if (uniquePkgs.length > 0) {
+                const infos = await getPackagesInfo(uniquePkgs);
+                const infoMap = new Map();
+                infos.forEach(i => infoMap.set(i.packageName, i));
+
+                apps.forEach(app => {
+                    const info = infoMap.get(app.packageName);
+                    if (info) {
+                        app.appLabel = info.appLabel || app.appLabel;
+                        app.icon = `ksu://icon/${app.packageName}`;
+                    }
+                });
+            }
+        } catch (e) {
+            console.warn('fetchAppDetails: KSU API failed', e);
+        }
+
+        return apps;
+    }
+
+
 
     static iconCache = new Map();
     static iconLoadQueue = [];
@@ -767,6 +736,26 @@ export class KSUService {
             binary += String.fromCharCode(bytes[i]);
         }
         return btoa(binary);
+    }
+
+    // ===================== 分应用代理总开关 =====================
+
+    // 获取分应用代理启用状态
+    static async getAppProxyEnabled() {
+        try {
+            const content = await this.exec(`cat ${this.MODULE_PATH}/config/tproxy.conf`);
+            // APP_PROXY_ENABLE=1 or 0
+            const match = content.match(/^APP_PROXY_ENABLE=(\d+)/m);
+            return match ? match[1] === '1' : true; // 默认启用? 假设
+        } catch (error) {
+            return true;
+        }
+    }
+
+    // 设置分应用代理启用状态
+    static async setAppProxyEnabled(enabled) {
+        const val = enabled ? '1' : '0';
+        await this.exec(`sed -i 's/^APP_PROXY_ENABLE=.*/APP_PROXY_ENABLE=${val}/' ${this.MODULE_PATH}/config/tproxy.conf`);
     }
 
     // ===================== 代理开关设置 =====================

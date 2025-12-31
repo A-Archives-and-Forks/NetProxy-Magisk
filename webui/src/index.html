@@ -287,28 +287,23 @@
       <!-- Proxy Settings Page -->
       <div id="uid-page" class="page">
         <div class="container">
-          <!-- Proxy Mode Card -->
+          <!-- Unified App Proxy Settings Card -->
           <mdui-card variant="elevated" style="margin-bottom: 16px;">
             <div style="padding: 20px;">
-              <div style="display: flex; align-items: center; justify-content: space-between;">
-                <div>
-                  <h2 style="margin: 0 0 4px 0; font-size: 18px;">代理模式</h2>
-                  <div id="proxy-mode-desc" style="font-size: 13px; color: var(--mdui-color-on-surface-variant);">
-                    黑名单模式：代理所有应用，排除列表中的应用</div>
-                </div>
-                <mdui-segmented-button-group id="proxy-mode-switch" value="blacklist" selects="single">
-                  <mdui-segmented-button value="blacklist">黑名单</mdui-segmented-button>
-                  <mdui-segmented-button value="whitelist">白名单</mdui-segmented-button>
-                </mdui-segmented-button-group>
-              </div>
+              <h2 style="margin: 0 0 16px 0; font-size: 18px;">分应用设置</h2>
+              <mdui-segmented-button-group id="app-proxy-mode-group" selects="single" value="off" style="width: 100%;">
+                <mdui-segmented-button value="off" icon="power_settings_new">关闭</mdui-segmented-button>
+                <mdui-segmented-button value="whitelist" icon="rule">白名单</mdui-segmented-button>
+                <mdui-segmented-button value="blacklist" icon="block">黑名单</mdui-segmented-button>
+              </mdui-segmented-button-group>
             </div>
           </mdui-card>
 
           <!-- App List Card -->
-          <mdui-card variant="elevated">
+          <mdui-card variant="elevated" id="proxy-list-card">
             <div style="padding: 20px;">
               <div style="display: flex; align-items: center; margin-bottom: 16px;">
-                <h2 style="margin: 0; font-size: 20px; flex-grow: 1;" id="proxy-list-title">排除应用</h2>
+                <h2 style="margin: 0; font-size: 18px; flex-grow: 1;" id="proxy-list-title">排除应用</h2>
                 <mdui-button icon="add" id="add-uid-btn">添加</mdui-button>
               </div>
               <mdui-list id="uid-list">
@@ -735,6 +730,16 @@
     style="--mdui-dialog-max-width: 500px;">
     <mdui-text-field label="搜索应用" icon="search" id="app-selector-search" style="width: 100%; margin-bottom: 16px;">
     </mdui-text-field>
+
+    <div style="display: flex; gap: 16px; margin-bottom: 16px;">
+      <mdui-select id="app-selector-user" label="用户" style="flex-grow: 1;">
+        <mdui-menu-item value="0">Owner (0)</mdui-menu-item>
+      </mdui-select>
+      <div style="display: flex; align-items: center;">
+        <span style="font-size: 14px; margin-right: 8px;">显示系统应用</span>
+        <mdui-switch id="app-selector-show-system"></mdui-switch>
+      </div>
+    </div>
 
     <div style="max-height: 400px; overflow-y: auto;">
       <mdui-list id="app-selector-list">
