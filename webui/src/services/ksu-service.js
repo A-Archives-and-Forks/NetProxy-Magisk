@@ -510,7 +510,6 @@ export class KSUService {
     }
 
     // 获取已安装应用列表
-    // 获取已安装应用列表
     static async getUsers() {
         try {
             const output = await this.exec('pm list users');
@@ -566,7 +565,6 @@ export class KSUService {
             // 3. 增强应用信息 (Label, Icon)
             // 场景 A: WebUI X 环境
             if (typeof $packageManager !== 'undefined' && apps.length > 0) {
-                // 仅仅对前 N 个进行同步获取，避免阻塞？ 或者全部异步获取？
                 // 批量获取应用信息
 
                 const enrichedApps = await Promise.all(apps.map(async app => {
