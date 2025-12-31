@@ -68,18 +68,7 @@ get_config_path() {
 
 
 
-#######################################
-# 更新 module.conf 中的配置路径
-# Arguments:
-#   $1 - 配置文件路径
-#######################################
-update_status() {
-    local config_path="$1"
-    
-    sed -i "s|^CURRENT_CONFIG=.*|CURRENT_CONFIG=\"$config_path\"|" "$MODULE_CONF"
-    
-    log "INFO" "配置已更新: $config_path"
-}
+
 
 #######################################
 # 检查 Xray 是否已运行
@@ -130,8 +119,7 @@ start_xray() {
     # 启用 TProxy 规则
     "$MODDIR/scripts/network/tproxy.sh" start
     
-    # 更新状态
-    update_status "$outbound_config"
+
     
     log "INFO" "========== Xray 服务启动完成 =========="
 }
