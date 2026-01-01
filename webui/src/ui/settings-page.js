@@ -110,6 +110,19 @@ export class SettingsPageManager {
             });
         }
 
+        const quickStartSwitch = document.getElementById('module-quick-start');
+        if (quickStartSwitch) {
+            quickStartSwitch.addEventListener('change', async (e) => {
+                try {
+                    await KSUService.setModuleSetting('QUICK_START', e.target.checked);
+                    toast(e.target.checked ? '快速启动模式已启用' : '快速启动模式已禁用');
+                } catch (error) {
+                    toast('设置失败: ' + error.message, true);
+                    e.target.checked = !e.target.checked;
+                }
+            });
+        }
+
         // 主题设置入口
         const themeEntry = document.getElementById('settings-theme');
         if (themeEntry) {
@@ -1062,6 +1075,11 @@ export class SettingsPageManager {
             const oneplusFixSwitch = document.getElementById('module-oneplus-fix');
             if (oneplusFixSwitch) {
                 oneplusFixSwitch.checked = settings.oneplus_a16_fix;
+            }
+
+            const quickStartSwitch = document.getElementById('module-quick-start');
+            if (quickStartSwitch) {
+                quickStartSwitch.checked = settings.quick_start;
             }
         } catch (error) {
             console.error('Failed to load module settings:', error);

@@ -6,10 +6,25 @@ readonly MODDIR="$(cd "$(dirname "$0")/../.." && pwd)"
 readonly LOG_FILE="$MODDIR/logs/service.log"
 readonly XRAY_BIN="$MODDIR/bin/xray"
 readonly KILL_TIMEOUT=5
+readonly MODULE_CONF="$MODDIR/config/module.conf"
+readonly API_SERVER="127.0.0.1:8080"
 # 运行时配置快照（启动时复制的配置）
 readonly TPROXY_RUNTIME_CONF="$MODDIR/logs/.tproxy_runtime.conf"
 # 原始配置文件（备用）
 readonly TPROXY_CONF="$MODDIR/config/tproxy.conf"
+
+# 默认配置值
+QUICK_START=0
+
+#######################################
+# 加载模块配置
+#######################################
+load_module_config() {
+    if [ -f "$MODULE_CONF" ]; then
+        # shellcheck source=/dev/null
+        . "$MODULE_CONF"
+    fi
+}
 
 #######################################
 # 记录日志
@@ -30,7 +45,7 @@ log() {
 #######################################
 kill_xray_process() {
     local pid
-    pid=$(pidof -s "$XRAY_BIN")
+    pid=$(pidof -s "$XRAY_BIN") || true
     
     if [ -z "$pid" ]; then
         log "INFO" "未发现运行中的 Xray 进程"
@@ -81,10 +96,38 @@ cleanup_tproxy() {
 }
 
 #######################################
-# 停止 Xray 服务
+# 快速停止 - 通过 API 删除 proxy 出站
+# Returns:
+#   0 成功, 1 失败
 #######################################
-stop_xray() {
-    log "INFO" "========== 开始停止 Xray 服务 =========="
+quick_stop() {
+    log "INFO" "========== 快速停止模式 =========="
+    
+    # 检查 Xray 是否在运行
+    local pid
+    pid=$(pidof -s "$XRAY_BIN") || true
+    if [ -z "$pid" ]; then
+        log "WARN" "Xray 未运行，无需快速停止"
+        return 0
+    fi
+    
+    # 通过 API 删除 proxy 出站，流量会自动走 direct
+    log "INFO" "通过 API 删除 proxy 出站..."
+    if "$XRAY_BIN" api rmo --server="$API_SERVER" proxy 2>/dev/null; then
+        log "INFO" "proxy 出站已删除"
+    else
+        log "WARN" "删除 proxy 出站失败，可能已不存在"
+    fi
+    
+    log "INFO" "========== 快速停止完成 =========="
+    return 0
+}
+
+#######################################
+# 完整停止 Xray 服务
+#######################################
+full_stop() {
+    log "INFO" "========== 开始完整停止 Xray 服务 =========="
     
     # 清理 TProxy（先清理规则避免断网）
     cleanup_tproxy
@@ -93,6 +136,25 @@ stop_xray() {
     kill_xray_process
     
     log "INFO" "========== Xray 服务停止完成 =========="
+}
+
+#######################################
+# 停止 Xray 服务（入口）
+#######################################
+stop_xray() {
+    # 加载配置
+    load_module_config
+    
+    # 根据快速启动模式选择停止方式
+    if [ "$QUICK_START" = "1" ]; then
+        if quick_stop; then
+            return 0
+        fi
+        # 快速停止失败，回退到完整停止
+        log "WARN" "快速停止失败，执行完整停止"
+    fi
+    
+    full_stop
 }
 
 # 主流程

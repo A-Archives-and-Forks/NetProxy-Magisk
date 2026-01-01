@@ -47,11 +47,17 @@
   animation: pulse-status 2s ease infinite;
 }
 
+.status-badge-dot.direct {
+  background: #FF9800;
+  box-shadow: 0 0 0 3px rgba(255, 152, 0, 0.2);
+}
+
 .status-badge-dot.stopped {
   background: #F44336;
 }
 
 @keyframes pulse-status {
+
   0%,
   100% {
     transform: scale(1);
@@ -192,6 +198,7 @@
 }
 
 @keyframes pulse-dot {
+
   0%,
   100% {
     transform: scale(1);

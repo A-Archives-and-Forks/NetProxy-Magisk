@@ -25,6 +25,7 @@ export class StatusPageManager {
                 statusChip.textContent = '正常';
                 statusChip.style.display = '';
                 statusChip.style.background = '';
+                statusChip.style.color = '';
 
                 if (!this.uptimeInterval) {
                     const uptime = await KSUService.getUptime();
@@ -36,6 +37,18 @@ export class StatusPageManager {
                     }
                 }
                 statusDetail.style.display = '';
+            } else if (status === 'direct') {
+                // 直连模式：Xray 运行中但流量直连（快速停止状态）
+                statusBadgeDot.className = 'status-badge-dot direct';
+                statusBadgeText.textContent = '直连模式';
+                statusChip.textContent = '已暂停';
+                statusChip.style.display = '';
+                statusChip.style.background = 'var(--mdui-color-tertiary-container)';
+                statusChip.style.color = 'var(--mdui-color-on-tertiary-container)';
+                statusDetail.textContent = '代理已暂停，流量直连';
+                statusDetail.style.display = '';
+
+                this.stopUptimeTimer();
             } else {
                 statusBadgeDot.className = 'status-badge-dot stopped';
                 statusBadgeText.textContent = '已停止';
@@ -52,12 +65,13 @@ export class StatusPageManager {
             document.getElementById('current-config-new').textContent = config || '无';
 
             const fab = document.getElementById('service-fab');
+            // 运行中显示停止按钮，直连模式和已停止都显示启动按钮
             fab.icon = status === 'running' ? 'stop' : 'play_arrow';
 
             // 更新内存占用显示
             const memoryEl = document.getElementById('status-memory');
             if (memoryEl) {
-                if (status === 'running') {
+                if (status === 'running' || status === 'direct') {
                     KSUService.getMemoryUsage().then(memory => {
                         memoryEl.textContent = memory;
                     }).catch(() => {

@@ -28,13 +28,29 @@ export class KSUService {
             // 使用 pidof 检测 xray 进程是否运行
             const pidOutput = await this.exec(`pidof -s /data/adb/modules/netproxy/bin/xray 2>/dev/null || echo`);
             const isRunning = pidOutput.trim() !== '';
-            const status = isRunning ? 'running' : 'stopped';
 
             // config 从 module.conf 读取
             const configOutput = await this.exec(`cat ${this.MODULE_PATH}/config/module.conf 2>/dev/null || echo`);
-            const config = configOutput.match(/CURRENT_CONFIG="([^"]*)"/)?.[1] || '';
+            const currentConfig = configOutput.match(/CURRENT_CONFIG="([^"]*)"/)?.[1] || '';
 
-            return { status, config: config.split('/').pop() };
+            // 判断状态：运行中、直连模式、已停止
+            let status;
+            if (isRunning) {
+                // 通过 API 列出出站，检查 proxy 是否存在
+                const lsoOutput = await this.exec(`${this.MODULE_PATH}/bin/xray api lso --server=127.0.0.1:8080 2>/dev/null || echo '{}'`);
+                const hasProxyOutbound = lsoOutput.includes('"tag": "proxy"');
+
+                if (hasProxyOutbound) {
+                    status = 'running';
+                } else {
+                    // proxy 出站不存在，处于直连模式
+                    status = 'direct';
+                }
+            } else {
+                status = 'stopped';
+            }
+
+            return { status, config: currentConfig.split('/').pop() };
         } catch (error) {
             return { status: 'unknown', config: '' };
         }
@@ -803,13 +819,17 @@ export class KSUService {
             settings.auto_start = autoStartMatch ? autoStartMatch[1] === '1' : true;
 
             const oneplusFixMatch = content.match(/ONEPLUS_A16_FIX=(\d+)/);
-            settings.oneplus_a16_fix = oneplusFixMatch ? oneplusFixMatch[1] === '1' : true;
+            settings.oneplus_a16_fix = oneplusFixMatch ? oneplusFixMatch[1] === '1' : false;
+
+            const quickStartMatch = content.match(/QUICK_START=(\d+)/);
+            settings.quick_start = quickStartMatch ? quickStartMatch[1] === '1' : false;
 
             return settings;
         } catch (error) {
             return {
                 auto_start: true,
-                oneplus_a16_fix: true
+                oneplus_a16_fix: false,
+                quick_start: false
             };
         }
     }
