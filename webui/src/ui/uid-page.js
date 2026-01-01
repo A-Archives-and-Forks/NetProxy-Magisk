@@ -169,23 +169,18 @@ export class UIDPageManager {
                 // 使用 fetchAppDetails 获取到的 Label，如果没有则显示包名
                 const label = proxyApp.appLabel || proxyApp.packageName;
 
-                item.setAttribute('headline', label);
+                // 标题：应用名 + 用户ID（如果非主用户）
+                const headline = proxyApp.userId !== '0'
+                    ? `${label} [用户 ${proxyApp.userId}]`
+                    : label;
+                item.setAttribute('headline', headline);
 
-                // Description 显示包名 + 用户ID（如果非主用户）
-                const userTags = [];
-                if (proxyApp.userId !== '0') userTags.push(`[用户 ${proxyApp.userId}]`);
-                // 如果 Label 和 包名不一致，显示包名以便区分
-                if (label !== proxyApp.packageName) userTags.push(proxyApp.packageName);
-
-                // Description 最终显示内容
-                const descText = userTags.join(' ');
-
-                // 使用自定义 slot 显示详细信息
-                if (descText) {
+                // Description 只显示包名（如果和标签不同）
+                if (label !== proxyApp.packageName) {
                     const descSpan = document.createElement('span');
                     descSpan.slot = 'description';
                     descSpan.className = 'package-name-wrap';
-                    descSpan.textContent = descText;
+                    descSpan.textContent = proxyApp.packageName;
                     item.appendChild(descSpan);
                 }
 
