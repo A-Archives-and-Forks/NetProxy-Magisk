@@ -46,6 +46,22 @@ mdui-navigation-bar-item[active]::part(label) {
   color: var(--monet-on-secondary-container, var(--mdui-color-on-secondary-container)) !important;
 }
 
+/* 导航栏项目 - 激活状态禁用涟漪和状态层效果 */
+mdui-navigation-bar-item[active] {
+  /* 禁用所有状态层透明度 */
+  --mdui-state-layer-hover: 0 !important;
+  --mdui-state-layer-focus: 0 !important;
+  --mdui-state-layer-pressed: 0 !important;
+  --mdui-state-layer-dragged: 0 !important;
+}
+
+mdui-navigation-bar-item[active]::part(ripple),
+mdui-navigation-bar-item[active]::part(state-layer) {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
 /* ==================== 按钮 ==================== */
 
 mdui-button {
