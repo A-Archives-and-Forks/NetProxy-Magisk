@@ -122,7 +122,6 @@ jobs:
             
             版本: `${{ github.event.release.tag_name }}`
             
-            日志: 
-            ${{ github.event.release.body }}
+            [查看更新日志](${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ github.event.release.tag_name }})
             
-            [下载地址](${{ github.server_url }}/${{ github.repository }}/releases/latest)
+            [下载模块](${{ github.server_url }}/${{ github.repository }}/releases/download/${{ github.event.release.tag_name }}/NetProxy-Module.zip)
