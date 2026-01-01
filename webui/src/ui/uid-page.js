@@ -368,8 +368,7 @@ export class UIDPageManager {
     }
 
     renderAppList(apps) {
-        // 清空之前的图标加载队列
-        KSUService.clearIconLoadQueue();
+
 
         const listEl = document.getElementById('app-selector-list');
         // 获取滚动容器作为 IntersectionObserver 的 root
