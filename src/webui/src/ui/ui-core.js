@@ -286,15 +286,15 @@ export class UI {
                         const result = await KSUService.updateXray();
 
                         if (result.success) {
-                            toast(result.message, true);
+                            toast(result.message);
                             if (!result.isLatest) {
                                 setTimeout(() => this.statusPage.update(), 1500);
                             }
                         } else {
-                            toast('更新失败: ' + (result.error || result.message), true);
+                            toast('更新失败: ' + (result.error || result.message));
                         }
                     } catch (error) {
-                        toast('检查失败: ' + error.message, true);
+                        toast('检查失败: ' + error.message);
                     } finally {
                         checkUpdateBtn.disabled = false;
                         checkUpdateBtn.loading = false;
