@@ -277,6 +277,8 @@ export class UIDPageManager {
         try {
             // 重新获取 (带缓存或者重新 exec)
             this.allApps = await KSUService.getInstalledApps(this.currentUserId, this.showSystemApps);
+            // 获取应用详情（Label, Icon）
+            this.allApps = await KSUService.fetchAppDetails(this.allApps);
             this.renderAppList(this.allApps);
         } catch (error) {
             listEl.innerHTML = '<mdui-list-item><div slot="headline">加载失败</div></mdui-list-item>';

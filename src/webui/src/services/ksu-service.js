@@ -655,27 +655,6 @@ EOF
                 });
             }
 
-
-            // 3. 增强应用信息 (Label, Icon) - 使用 KSU API
-            try {
-                const uniquePkgs = [...new Set(apps.map(a => a.packageName))];
-                if (uniquePkgs.length > 0) {
-                    const infos = await getPackagesInfo(uniquePkgs);
-                    const infoMap = new Map();
-                    infos.forEach(i => infoMap.set(i.packageName, i));
-
-                    apps.forEach(app => {
-                        const info = infoMap.get(app.packageName);
-                        if (info) {
-                            app.appLabel = info.appLabel || app.appLabel;
-                            app.icon = `ksu://icon/${app.packageName}`;
-                        }
-                    });
-                }
-            } catch (e) {
-                console.warn('Failed to fetch details via KSU API:', e);
-            }
-
             return apps;
         } catch (error) {
             console.error('Failed to get installed apps:', error);
