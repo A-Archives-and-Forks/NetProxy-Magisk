@@ -16,4 +16,6 @@
     <string name="tile_proxy_stopped">Proxy Stopped</string>
     <string name="tile_tap_to_stop">Tap to stop</string>
     <string name="tile_tap_to_start">Tap to start</string>
+    <string name="tile_on">On</string>
+    <string name="tile_off">Off</string>
 </resources>

@@ -32,10 +32,15 @@ class ProxyStatusTileService : TileService() {
         super.onClick()
         
         val isRunning = getProxyStatus()
+        val newState = !isRunning
+        
+        // 立即更新 UI 状态 (乐观更新)
+        updateTileUi(newState)
         
         if (isRunning) {
             // 当前运行中，执行停止
             Shell.cmd(STOP_SCRIPT).submit { 
+                // 脚本执行完成后再次检查状态以确保一致性
                 updateTileState()
             }
         } else {
@@ -53,21 +58,36 @@ class ProxyStatusTileService : TileService() {
     }
     
     private fun updateTileState() {
-        val tile = qsTile ?: return
         val isRunning = getProxyStatus()
+        updateTileUi(isRunning)
+    }
+
+    private fun updateTileUi(isRunning: Boolean) {
+        val tile = qsTile ?: return
+        
+        // 主标签保持为应用名称
+        tile.label = getString(R.string.app_name)
         
         if (isRunning) {
             tile.state = Tile.STATE_ACTIVE
-            tile.label = getString(R.string.tile_proxy_running)
+            val stateLabel = getString(R.string.tile_on)
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-                tile.subtitle = getString(R.string.tile_tap_to_stop)
+                tile.subtitle = stateLabel
             }
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                tile.stateDescription = stateLabel
+            }
+            tile.contentDescription = "${getString(R.string.app_name)} $stateLabel"
         } else {
             tile.state = Tile.STATE_INACTIVE
-            tile.label = getString(R.string.tile_proxy_stopped)
+            val stateLabel = getString(R.string.tile_off)
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-                tile.subtitle = getString(R.string.tile_tap_to_start)
+                tile.subtitle = stateLabel
             }
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                tile.stateDescription = stateLabel
+            }
+            tile.contentDescription = "${getString(R.string.app_name)} $stateLabel"
         }
         
         tile.updateTile()
