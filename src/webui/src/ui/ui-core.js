@@ -128,44 +128,34 @@ export class UI {
             try {
                 const { status } = await KSUService.getStatus();
 
+                // 立即显示 loading 状态
+                fab.icon = 'sync';
+                fab.classList.add('rotating');
+
                 if (status === 'running') {
-                    fab.icon = 'sync';
-                    fab.classList.add('rotating');
                     toast('正在停止服务...');
-
-                    setTimeout(async () => {
-                        try {
-                            await KSUService.stopService();
-                            toast('服务已停止');
-                            await this.statusPage.update();
-                        } catch (error) {
-                            toast('停止失败: ' + error.message);
-                        } finally {
-                            fab.classList.remove('rotating');
-                            fab.disabled = false;
-                        }
-                    }, 100);
+                    const success = await KSUService.stopService();
+                    if (success) {
+                        toast('服务已停止');
+                    } else {
+                        toast('停止超时，请检查服务状态');
+                    }
                 } else {
-                    fab.icon = 'sync';
-                    fab.classList.add('rotating');
                     toast('正在启动服务...');
-
-                    setTimeout(async () => {
-                        try {
-                            await KSUService.startService();
-                            toast('服务已启动');
-                            await this.statusPage.update();
-                        } catch (error) {
-                            toast('启动失败: ' + error.message);
-                        } finally {
-                            fab.classList.remove('rotating');
-                            fab.disabled = false;
-                        }
-                    }, 100);
+                    const success = await KSUService.startService();
+                    if (success) {
+                        toast('服务已启动');
+                    } else {
+                        toast('启动超时，请检查服务状态');
+                    }
                 }
+
+                await this.statusPage.update();
             } catch (error) {
                 console.error('FAB error:', error);
                 toast('操作失败: ' + error.message);
+            } finally {
+                fab.classList.remove('rotating');
                 fab.disabled = false;
             }
         });

@@ -39,14 +39,39 @@ export class KSUService {
         }
     }
 
-    // 启动服务
+    // 启动服务（非阻塞）
     static async startService() {
-        await exec(`su -c "sh ${this.MODULE_PATH}/scripts/core/start.sh"`);
+        // 后台执行启动脚本，不等待完成
+        exec(`su -c "nohup sh ${this.MODULE_PATH}/scripts/core/start.sh > /dev/null 2>&1 &"`);
+        // 轮询等待服务启动
+        return await this.pollServiceStatus('running', 15000);
     }
 
-    // 停止服务
+    // 停止服务（非阻塞）
     static async stopService() {
-        await exec(`su -c "sh ${this.MODULE_PATH}/scripts/core/stop.sh"`);
+        // 后台执行停止脚本，不等待完成
+        exec(`su -c "nohup sh ${this.MODULE_PATH}/scripts/core/stop.sh > /dev/null 2>&1 &"`);
+        // 轮询等待服务停止
+        return await this.pollServiceStatus('stopped', 10000);
+    }
+
+    // 轮询服务状态
+    static async pollServiceStatus(targetStatus, timeout) {
+        const start = Date.now();
+        const interval = 500; // 每 500ms 检查一次
+
+        while (Date.now() - start < timeout) {
+            await new Promise(resolve => setTimeout(resolve, interval));
+            try {
+                const { status } = await this.getStatus();
+                if (status === targetStatus) {
+                    return true;
+                }
+            } catch (e) {
+                // 忽略检查过程中的错误
+            }
+        }
+        return false; // 超时
     }
 
     // 获取配置文件结构（分组和文件名）- 对应 Shell 逻辑
