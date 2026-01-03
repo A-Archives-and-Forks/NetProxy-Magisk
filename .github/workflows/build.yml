@@ -20,6 +20,8 @@ jobs:
     steps:
       - name: 拉取代码
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: 设置 Node.js
         uses: actions/setup-node@v4
@@ -68,8 +70,14 @@ jobs:
       - name: 打包模块
         if: ${{ needs.build.result == 'success' }}
         run: |
+          COMMIT_COUNT=$(git rev-list --count HEAD)
+          # 从 module.prop 读取 version
+          VERSION=$(grep '^version=' src/module/module.prop | cut -d= -f2)
+          ZIP_NAME="NetProxy_${VERSION}_${COMMIT_COUNT}.zip"
+          echo "ZIP_NAME=$ZIP_NAME" >> $GITHUB_ENV
+          
           cd src/module
-          zip -r ../../NetProxy-Module.zip .
+          zip -r "../../$ZIP_NAME" .
           cd ..
 
       - name: 发送模块到 Telegram
@@ -79,6 +87,7 @@ jobs:
         run: |
           CAPTION="模块构建成功通知
           
+          文件: \`${{ env.ZIP_NAME }}\`
           说明:
           \`\`\`
           $COMMIT_MSG
@@ -88,7 +97,7 @@ jobs:
           [构建日志](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
           
           curl -v -F "chat_id=${{ secrets.TG_CHAT_ID }}" \
-               -F "document=@NetProxy-Module.zip" \
+               -F "document=@${{ env.ZIP_NAME }}" \
                -F "message_thread_id=2275" \
                -F "parse_mode=Markdown" \
                -F "caption=$CAPTION" \
