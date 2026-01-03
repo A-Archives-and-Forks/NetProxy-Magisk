@@ -25,7 +25,7 @@ export class UIDPageManager {
         if (modeGroup) {
             modeGroup.addEventListener('change', async (e) => {
                 if (this.isUpdatingUI) return;
-                const newMode = e.target.value;
+                const newMode = modeGroup.value;
                 await this.handleProxyModeChange(newMode);
             });
         }
@@ -248,7 +248,7 @@ export class UIDPageManager {
                 this.proxyMode = modeValue;
                 toast(I18nService.t('uid.toast_mode_switched') + (modeValue === 'blacklist' ? I18nService.t('uid.mode_blacklist') : I18nService.t('uid.mode_whitelist')));
             }
-            this.update();
+            this.update(true);
         } catch (error) {
             toast(I18nService.t('common.set_failed') + error.message, true);
         }
