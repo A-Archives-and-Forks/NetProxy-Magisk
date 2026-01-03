@@ -1,5 +1,6 @@
 import zhCN from '../i18n/zh-CN.js';
 import enUS from '../i18n/en-US.js';
+import urPK from '../i18n/ur-PK.js';
 
 /**
  * I18nService - Internationalization Service
@@ -13,7 +14,8 @@ export class I18nService {
     // Translation Resources
     static resources = {
         'zh-CN': zhCN,
-        'en-US': enUS
+        'en-US': enUS,
+        'ur-PK': urPK
     };
 
     // Initialize
@@ -65,6 +67,13 @@ export class I18nService {
 
     // Apply translation to all [data-i18n] elements
     static applyLanguage() {
+        // Set directionality
+        if (this.currentLang === 'ur-PK') {
+            document.documentElement.dir = 'rtl';
+        } else {
+            document.documentElement.dir = 'ltr';
+        }
+
         const selectors = [
             '[data-i18n]',
             '[data-i18n-placeholder]',
