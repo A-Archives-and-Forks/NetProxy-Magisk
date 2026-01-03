@@ -208,6 +208,18 @@ export default {
     // Routing Page
     'routing.title': 'Routing Rules',
     'routing.desc': 'Manage Xray routing rules',
+    'routing.import': 'Import',
+    'routing.import_clash': 'Import Clash Rules',
+    'routing.clash_url': 'Rules URL',
+    'routing.clash_url_placeholder': 'Enter Clash rules YAML URL',
+    'routing.clash_name_placeholder': 'e.g. Ad-Block Rules',
+    'routing.clash_hint': 'Supports Clash domain rules format (payload list), auto-parsed to routing rules',
+    'routing.toast_url_required': 'Please enter the rules URL',
+    'routing.toast_importing': 'Importing rules...',
+    'routing.toast_fetch_failed': 'Failed to fetch rules, check the URL',
+    'routing.toast_no_domains': 'No valid domain rules found',
+    'routing.toast_imported': 'Import successful, {count} rules added',
+    'routing.toast_import_failed': 'Import failed: ',
 
     // DNS Page
     'dns.title': 'DNS Settings',

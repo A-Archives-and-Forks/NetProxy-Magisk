@@ -181,6 +181,29 @@ export class SettingsPageManager {
                 this.saveRule();
             });
         }
+
+        // Clash 规则导入按钮
+        const importClashBtn = document.getElementById('import-clash-rules-btn');
+        if (importClashBtn) {
+            importClashBtn.addEventListener('click', () => {
+                this.showClashImportDialog();
+            });
+        }
+
+        // Clash 导入对话框事件
+        const clashCancelBtn = document.getElementById('clash-import-cancel');
+        if (clashCancelBtn) {
+            clashCancelBtn.addEventListener('click', () => {
+                document.getElementById('clash-import-dialog').open = false;
+            });
+        }
+
+        const clashConfirmBtn = document.getElementById('clash-import-confirm');
+        if (clashConfirmBtn) {
+            clashConfirmBtn.addEventListener('click', () => {
+                this.importClashRules();
+            });
+        }
     }
 
     async loadRoutingRules() {
@@ -370,6 +393,110 @@ export class SettingsPageManager {
             console.error('保存规则失败:', error);
             toast(I18nService.t('common.save_failed') + error.message);
         }
+    }
+
+    // Clash 规则导入对话框
+    showClashImportDialog() {
+        const dialog = document.getElementById('clash-import-dialog');
+        document.getElementById('clash-rule-name').value = '';
+        document.getElementById('clash-rule-url').value = '';
+        document.getElementById('clash-rule-outbound').value = 'block';
+        dialog.open = true;
+    }
+
+    // 导入 Clash 规则
+    async importClashRules() {
+        const name = document.getElementById('clash-rule-name').value.trim();
+        const url = document.getElementById('clash-rule-url').value.trim();
+        const outboundTag = document.getElementById('clash-rule-outbound').value;
+
+        if (!url) {
+            toast(I18nService.t('routing.toast_url_required'));
+            return;
+        }
+
+        try {
+            toast(I18nService.t('routing.toast_importing'));
+
+            // 通过 KSU shell 执行 curl 获取内容
+            const content = await KSUService.fetchUrl(url);
+
+            if (!content) {
+                toast(I18nService.t('routing.toast_fetch_failed'));
+                return;
+            }
+
+            // 解析 Clash YAML payload
+            const domains = this.parseClashPayload(content);
+
+            if (domains.length === 0) {
+                toast(I18nService.t('routing.toast_no_domains'));
+                return;
+            }
+
+            // 创建路由规则
+            const rule = {
+                name: name || `Clash 规则 (${domains.length} 条)`,
+                type: 'field',
+                domain: domains.join(','),
+                ip: '',
+                port: '',
+                protocol: '',
+                network: '',
+                outboundTag: outboundTag,
+                enabled: true
+            };
+
+            this.routingRules.push(rule);
+            await this.saveRulesToBackend();
+            this.renderRoutingRules();
+
+            document.getElementById('clash-import-dialog').open = false;
+            toast(I18nService.t('routing.toast_imported', { count: domains.length }));
+        } catch (error) {
+            console.error('导入 Clash 规则失败:', error);
+            toast(I18nService.t('routing.toast_import_failed') + error.message);
+        }
+    }
+
+    // 解析 Clash YAML payload 格式
+    parseClashPayload(content) {
+        const domains = [];
+        const lines = content.split('\n');
+        let inPayload = false;
+
+        for (const line of lines) {
+            const trimmed = line.trim();
+
+            // 检测 payload: 开始
+            if (trimmed === 'payload:') {
+                inPayload = true;
+                continue;
+            }
+
+            // 如果在 payload 区域，解析域名
+            if (inPayload) {
+                // 检测是否结束 (遇到非 - 开头的行且非空)
+                if (trimmed && !trimmed.startsWith('-') && !trimmed.startsWith('#')) {
+                    break;
+                }
+
+                // 解析 - 'domain' 或 - "domain" 或 - domain 格式
+                if (trimmed.startsWith('-')) {
+                    let domain = trimmed.substring(1).trim();
+                    // 移除引号
+                    domain = domain.replace(/^['"]|['"]$/g, '');
+                    // 移除 Clash 特殊前缀 (DOMAIN, DOMAIN-SUFFIX 等)
+                    domain = domain.replace(/^\+\.|^\*\./, '');
+
+                    if (domain && !domain.startsWith('#')) {
+                        domains.push(domain);
+                    }
+                }
+            }
+        }
+
+        return domains;
     }
 
     // ===================== DNS 设置页面 =====================

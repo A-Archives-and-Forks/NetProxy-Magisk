@@ -557,6 +557,17 @@ EOF
         }
     }
 
+    // 通过 curl 获取远程 URL 内容
+    static async fetchUrl(url) {
+        try {
+            const result = await this.exec(`curl -sL --connect-timeout 10 --max-time 30 '${url}'`);
+            return result.trim();
+        } catch (error) {
+            console.error('fetchUrl error:', error);
+            return null;
+        }
+    }
+
 
 
     // 获取服务运行时间

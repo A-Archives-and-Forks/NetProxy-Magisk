@@ -208,6 +208,18 @@ export default {
     // Routing Page
     'routing.title': '路由规则设置',
     'routing.desc': '管理 Xray 路由规则',
+    'routing.import': '导入',
+    'routing.import_clash': '导入 Clash 规则',
+    'routing.clash_url': '规则链接',
+    'routing.clash_url_placeholder': '输入 Clash 规则 YAML 链接',
+    'routing.clash_name_placeholder': '例如：去广告规则',
+    'routing.clash_hint': '支持 Clash 域名规则格式 (payload 列表)，自动解析为路由规则',
+    'routing.toast_url_required': '请输入规则链接',
+    'routing.toast_importing': '正在导入规则...',
+    'routing.toast_fetch_failed': '获取规则失败，请检查链接',
+    'routing.toast_no_domains': '未找到有效的域名规则',
+    'routing.toast_imported': '导入成功，共 {count} 条规则',
+    'routing.toast_import_failed': '导入失败: ',
 
     // DNS Page
     'dns.title': 'DNS 设置',

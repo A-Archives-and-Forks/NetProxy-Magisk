@@ -511,7 +511,17 @@
                   <span data-i18n="routing.desc">管理 Xray 路由规则</span>
                 </p>
               </div>
-              <mdui-button id="add-routing-rule-btn" icon="add" data-i18n="common.add">添加</mdui-button>
+              <mdui-dropdown>
+                <mdui-button slot="trigger" icon="add" data-i18n="common.add">添加</mdui-button>
+                <mdui-menu>
+                  <mdui-menu-item id="add-routing-rule-btn" icon="add">
+                    <span data-i18n="settings.routing.dialog_add">添加规则</span>
+                  </mdui-menu-item>
+                  <mdui-menu-item id="import-clash-rules-btn" icon="filter_alt">
+                    <span data-i18n="routing.import_clash">导入 Clash 规则</span>
+                  </mdui-menu-item>
+                </mdui-menu>
+              </mdui-dropdown>
             </div>
           </mdui-card>
 
@@ -894,6 +904,32 @@
     </div>
     <mdui-button slot="action" variant="text" id="rule-cancel" data-i18n="common.cancel">取消</mdui-button>
     <mdui-button slot="action" variant="filled" id="rule-save" data-i18n="common.save">保存</mdui-button>
+  </mdui-dialog>
+
+  <!-- Clash Rules Import Dialog -->
+  <mdui-dialog id="clash-import-dialog" headline="导入 Clash 规则" close-on-overlay-click="false"
+    style="--mdui-dialog-max-width: 500px;" data-i18n-headline="routing.import_clash">
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <mdui-text-field label="规则名称" id="clash-rule-name" placeholder="例如：去广告规则" style="width: 100%;"
+        data-i18n-label="routing.rule_name" data-i18n-placeholder="routing.clash_name_placeholder"></mdui-text-field>
+
+      <mdui-text-field label="规则链接" id="clash-rule-url" placeholder="输入 Clash 规则 YAML 链接" style="width: 100%;"
+        data-i18n-label="routing.clash_url" data-i18n-placeholder="routing.clash_url_placeholder"></mdui-text-field>
+
+      <mdui-select label="出站动作" id="clash-rule-outbound" value="block" style="width: 100%;"
+        data-i18n-label="settings.routing.outbound_label">
+        <mdui-menu-item value="proxy" data-i18n="settings.routing.outbound_proxy">Proxy (代理)</mdui-menu-item>
+        <mdui-menu-item value="direct" data-i18n="settings.routing.outbound_direct">Direct (直连)</mdui-menu-item>
+        <mdui-menu-item value="block" data-i18n="settings.routing.outbound_block">Block (阻断)</mdui-menu-item>
+      </mdui-select>
+
+      <p style="margin: 8px 0; color: var(--mdui-color-on-surface-variant); font-size: 13px;"
+        data-i18n="routing.clash_hint">
+        支持 Clash 域名规则格式 (payload 列表)，自动解析为路由规则
+      </p>
+    </div>
+    <mdui-button slot="action" variant="text" id="clash-import-cancel" data-i18n="common.cancel">取消</mdui-button>
+    <mdui-button slot="action" variant="filled" id="clash-import-confirm" data-i18n="routing.import">导入</mdui-button>
   </mdui-dialog>
 
   <!-- DNS Server Dialog -->
