@@ -69,6 +69,7 @@ export default {
 
     // Logs Page
     'logs.service_log': '服务日志',
+    'logs.title': '日志查看',
     'logs.xray_log': 'Xray 日志',
     'logs.tproxy_log': 'TProxy 日志',
     'logs.refresh': '刷新日志',

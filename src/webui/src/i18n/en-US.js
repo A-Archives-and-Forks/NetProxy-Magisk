@@ -69,6 +69,7 @@ export default {
 
     // Logs Page
     'logs.service_log': 'Service Log',
+    'logs.title': 'Logs',
     'logs.xray_log': 'Xray Log',
     'logs.tproxy_log': 'TProxy Log',
     'logs.refresh': 'Refresh',

@@ -48,6 +48,7 @@ export class UI {
         this.setupDialogs();
         this.setupAppSelector();
         this.uidPage.init();
+        this.logsPage.init();
 
         try {
             this.updateAllPages();
@@ -104,6 +105,11 @@ export class UI {
     }
 
     switchPage(pageName) {
+        // Handle page leave events
+        if (this.currentPage === 'logs' && pageName !== 'logs') {
+            this.logsPage.onPageLeave();
+        }
+
         document.querySelectorAll('.page').forEach(page => {
             page.classList.remove('active');
         });
@@ -247,31 +253,7 @@ export class UI {
             this.uidPage.filterApps(e.target.value);
         });
 
-        const serviceLogBtn = document.getElementById('refresh-service-log');
-        if (serviceLogBtn) {
-            serviceLogBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.logsPage.loadServiceLog();
-            });
-        }
-
-        const xrayLogBtn = document.getElementById('refresh-xray-log');
-        if (xrayLogBtn) {
-            xrayLogBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.logsPage.loadXrayLog();
-            });
-        }
-
-        const tproxyLogBtn = document.getElementById('refresh-tproxy-log');
-        if (tproxyLogBtn) {
-            tproxyLogBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.logsPage.loadTproxyLog();
-            });
-        }
-
-
+        // Refresh button handlers removed - now using tab-based auto-load
 
         const checkUpdateBtn = document.getElementById('check-update-btn');
         if (checkUpdateBtn) {

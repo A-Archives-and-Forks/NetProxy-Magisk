@@ -69,6 +69,7 @@ export default {
 
     // Logs Page
     'logs.service_log': 'سروس لاگ',
+    'logs.title': 'لاگز',
     'logs.xray_log': 'Xray لاگ',
     'logs.tproxy_log': 'TProxy لاگ',
     'logs.refresh': 'تازہ کریں',

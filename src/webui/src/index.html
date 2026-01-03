@@ -332,51 +332,52 @@
       <!-- Logs Page -->
       <div id="logs-page" class="page">
         <div class="container">
-          <!-- Service Log -->
-          <mdui-collapse accordion>
-            <mdui-collapse-item>
-              <mdui-list-item slot="header" icon="description">
-                <span data-i18n="logs.service_log">服务日志</span>
-                <mdui-button-icon slot="end-icon" icon="refresh" id="refresh-service-log"></mdui-button-icon>
-              </mdui-list-item>
-              <div style="padding: 16px;">
-                <div class="log-container" id="service-log">
-                  <mdui-circular-progress></mdui-circular-progress>
-                </div>
+          <!-- Tabs for different log types -->
+          <mdui-card variant="elevated" class="compact-card">
+            <!-- Title with Auto Refresh Toggle -->
+            <div
+              style="display: flex; justify-content: space-between; align-items: center; padding: 16px 16px 8px 16px;">
+              <h3 style="margin: 0; font-size: 16px; font-weight: 500;" data-i18n="logs.title">日志查看</h3>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 14px; color: var(--mdui-color-on-surface-variant);"
+                  data-i18n="logs.auto_refresh">自动刷新</span>
+                <mdui-switch id="logs-auto-refresh"></mdui-switch>
               </div>
-            </mdui-collapse-item>
-          </mdui-collapse>
+            </div>
 
-          <!-- Xray Log -->
-          <mdui-collapse accordion style="margin-top: 16px;">
-            <mdui-collapse-item>
-              <mdui-list-item slot="header" icon="description">
-                <span data-i18n="logs.xray_log">Xray 日志</span>
-                <mdui-button-icon slot="end-icon" icon="refresh" id="refresh-xray-log"></mdui-button-icon>
-              </mdui-list-item>
-              <div style="padding: 16px;">
-                <div class="log-container" id="xray-log">
-                  <mdui-circular-progress></mdui-circular-progress>
+            <mdui-tabs id="logs-tabs" value="service">
+              <mdui-tab value="service" data-i18n="logs.service_log">服务日志</mdui-tab>
+              <mdui-tab value="xray" data-i18n="logs.xray_log">Xray 日志</mdui-tab>
+              <mdui-tab value="tproxy" data-i18n="logs.tproxy_log">TProxy 日志</mdui-tab>
+
+              <!-- Service Log Panel -->
+              <mdui-tab-panel slot="panel" value="service">
+                <div style="padding: 16px;">
+                  <div class="log-container" id="service-log" style="max-height: 400px; overflow-y: auto;">
+                    <mdui-circular-progress></mdui-circular-progress>
+                  </div>
                 </div>
-              </div>
-            </mdui-collapse-item>
-          </mdui-collapse>
+              </mdui-tab-panel>
 
-          <!-- TProxy Log -->
-          <mdui-collapse accordion style="margin-top: 16px;">
-            <mdui-collapse-item>
-              <mdui-list-item slot="header" icon="router">
-                <span data-i18n="logs.tproxy_log">TProxy 日志</span>
-                <mdui-button-icon slot="end-icon" icon="refresh" id="refresh-tproxy-log"></mdui-button-icon>
-              </mdui-list-item>
-              <div style="padding: 16px;">
-                <div class="log-container" id="tproxy-log">
-                  <mdui-circular-progress></mdui-circular-progress>
+              <!-- Xray Log Panel -->
+              <mdui-tab-panel slot="panel" value="xray">
+                <div style="padding: 16px;">
+                  <div class="log-container" id="xray-log" style="max-height: 400px; overflow-y: auto;">
+                    <mdui-circular-progress></mdui-circular-progress>
+                  </div>
                 </div>
-              </div>
-            </mdui-collapse-item>
-          </mdui-collapse>
+              </mdui-tab-panel>
 
+              <!-- TProxy Log Panel -->
+              <mdui-tab-panel slot="panel" value="tproxy">
+                <div style="padding: 16px;">
+                  <div class="log-container" id="tproxy-log" style="max-height: 400px; overflow-y: auto;">
+                    <mdui-circular-progress></mdui-circular-progress>
+                  </div>
+                </div>
+              </mdui-tab-panel>
+            </mdui-tabs>
+          </mdui-card>
 
 
           <div
