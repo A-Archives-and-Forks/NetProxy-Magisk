@@ -31,11 +31,11 @@ log() {
     # 输出到日志文件
     printf "%s\n" "${timestamp} [${level}]: ${message}" >> "$LOG_FILE"
 
-    # 输出到终端
-    if [ -t 1 ]; then
-        printf "%b\n" "${color_code}${timestamp} [${level}]: ${message}\033[0m"
+    # 输出到终端 (使用 stderr 避免被命令替换捕获)
+    if [ -t 2 ]; then
+        printf "%b\n" "${color_code}${timestamp} [${level}]: ${message}\033[0m" >&2
     else
-        printf "%s\n" "${timestamp} [${level}]: ${message}"
+        printf "%s\n" "${timestamp} [${level}]: ${message}" >&2
     fi
 }
 
