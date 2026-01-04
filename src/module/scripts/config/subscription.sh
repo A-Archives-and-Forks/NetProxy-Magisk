@@ -44,19 +44,6 @@ EOF
 }
 
 #######################################
-# Base64 解码 (兼容 URL-safe)
-#######################################
-base64_decode() {
-    local input="$1"
-    # 处理 URL-safe base64
-    input=$(echo "$input" | tr '_-' '/+')
-    # 补齐 padding
-    local pad=$((4 - ${#input} % 4))
-    [ $pad -lt 4 ] && input="${input}$(printf '%*s' $pad '' | tr ' ' '=')"
-    echo "$input" | base64 -d 2>/dev/null
-}
-
-#######################################
 # 清理文件名
 #######################################
 sanitize_name() {
@@ -209,14 +196,12 @@ update_subscription() {
     log "DEBUG" "URL: $url"
     log "DEBUG" "目标目录: $sub_dir"
     
-    # 确保 proxylink 有执行权限
-    chmod +x "$MODDIR/bin/proxylink"
 
     # 使用 proxylink 进行订阅转换
     # -sub: 订阅链接
     # -format xray: 输出 xray 格式
     # -dir: 输出目录 (每个节点单独一个文件)
-    if "$MODDIR/bin/proxylink" -sub "$url" -insecure -format xray -dir "$sub_dir" >> "$LOG_FILE" 2>&1; then
+    if "$MODDIR/bin/proxylink" -sub "$url" -insecure -dns -format xray -dir "$sub_dir" >> "$LOG_FILE" 2>&1; then
          log "INFO" "订阅更新完成"
          echo "已导入节点"
     else
