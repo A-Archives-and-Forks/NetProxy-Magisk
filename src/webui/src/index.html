@@ -206,7 +206,7 @@
               <span class="card-title" data-i18n="status.network_detection">网络检测</span>
             </div>
             <div class="card-content">
-              <div class="card-value" id="external-ip">--</div>
+              <div class="card-value" id="external-ip"><span class="loading-spinner"></span></div>
             </div>
           </div>
 
@@ -217,7 +217,7 @@
               <span class="card-title" data-i18n="status.internal_ip">内网IP</span>
             </div>
             <div class="card-content">
-              <div class="card-value" id="internal-ip">--</div>
+              <div class="card-value" id="internal-ip"><span class="loading-spinner"></span></div>
             </div>
           </div>
 
@@ -229,7 +229,15 @@
             </div>
             <div class="card-content">
               <div class="traffic-donut-container">
-                <div class="donut-chart-wrapper" id="traffic-donut"></div>
+                <div class="donut-chart-wrapper" id="traffic-donut">
+                  <svg viewBox="0 0 100 100" class="active">
+                    <circle cx="50" cy="50" r="35" fill="none" stroke="var(--monet-secondary, #2196F3)"
+                      stroke-width="10" stroke-dasharray="109.96 219.91" transform="rotate(-90 50 50)"></circle>
+                    <circle cx="50" cy="50" r="35" fill="none" stroke="var(--monet-primary, #4CAF50)" stroke-width="10"
+                      stroke-dasharray="109.96 219.91" stroke-dashoffset="-109.96" transform="rotate(-90 50 50)">
+                    </circle>
+                  </svg>
+                </div>
                 <div class="traffic-legend">
                   <div class="legend-item">
                     <span class="legend-color upload"></span>

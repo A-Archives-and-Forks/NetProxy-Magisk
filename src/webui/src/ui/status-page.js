@@ -51,7 +51,12 @@ export class StatusPageManager {
                 this.stopUptimeTimer();
             }
 
-            // 更新网速和图表
+            // 先初始化图表 (确保有初始数据)
+            if (!this.speedChart) {
+                this.initSpeedChart();
+            }
+
+            // 然后更新网速
             await this.updateNetworkSpeed();
 
             // 更新 IP 和流量信息
@@ -59,11 +64,6 @@ export class StatusPageManager {
 
             // 更新出站模式 UI
             await this.updateModeUI();
-
-            // 初始化图表
-            if (!this.speedChart) {
-                this.initSpeedChart();
-            }
         } catch (error) {
             console.error('Update status failed:', error);
         }
@@ -193,7 +193,7 @@ export class StatusPageManager {
         const total = upload + download;
         if (total === 0) {
             container.innerHTML = `
-                <svg viewBox="0 0 100 100">
+                <svg viewBox="0 0 100 100" class="active">
                     <circle cx="50" cy="50" r="35" fill="none" stroke="var(--mdui-color-outline-variant, #ccc)" stroke-width="10"/>
                 </svg>
             `;
@@ -207,7 +207,7 @@ export class StatusPageManager {
         const downloadDash = (1 - uploadPercent) * circumference;
 
         container.innerHTML = `
-            <svg viewBox="0 0 100 100">
+            <svg viewBox="0 0 100 100" class="active">
                 <circle cx="50" cy="50" r="${radius}" fill="none" 
                     stroke="var(--monet-secondary, #2196F3)" stroke-width="10"
                     stroke-dasharray="${downloadDash} ${circumference}"
