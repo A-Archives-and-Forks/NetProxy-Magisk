@@ -6,7 +6,7 @@ import { setColorScheme } from 'mdui/functions/setColorScheme.js';
 import { setTheme } from 'mdui/functions/setTheme.js';
 import { UI } from './ui-core.js';
 
-const logoUrl = 'https://ghfast.top/https://raw.githubusercontent.com/Fanju6/NetProxy-Magisk/refs/heads/main/image/logo.png';
+import logoUrl from '../assets/img/logo.png';
 
 interface RoutingRule {
     name?: string;
