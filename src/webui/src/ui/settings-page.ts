@@ -47,6 +47,11 @@ export class SettingsPageManager {
     proxyKeys: string[];
     draggedIndex: number | null;
     sortable: Sortable | null;
+    // Logs related
+    _logsSelectedTab: string;
+    _logsAutoRefreshEnabled: boolean;
+    _logsAutoRefreshInterval: ReturnType<typeof setInterval> | null;
+    _logsAutoRefreshMs: number;
 
     constructor(ui: UI) {
         this.ui = ui;
@@ -57,6 +62,12 @@ export class SettingsPageManager {
         this.editingHostKey = null;
         this.draggedIndex = null;
         this.sortable = null;
+        // Logs related
+        this._logsSelectedTab = 'service';
+        this._logsAutoRefreshEnabled = false;
+        this._logsAutoRefreshInterval = null;
+        this._logsAutoRefreshMs = 3000;
+
         this.proxyKeys = [
             'proxy_mobile', 'proxy_wifi', 'proxy_hotspot', 'proxy_usb',
             'proxy_tcp', 'proxy_udp', 'proxy_ipv6'
@@ -67,7 +78,17 @@ export class SettingsPageManager {
         this.setupThemePage();
         this.setupLanguagePage();
         this.setupDnsPage();
+        this.setupLogsPage();
         this.applyStoredTheme();
+    }
+
+    init(): void {
+        // Initial setup
+    }
+
+    async update(): Promise<void> {
+        // Update logic for main settings page if needed
+        // Currently most settings are loaded on demand when clicking sub-items
     }
 
     setupEventListeners(): void {
@@ -1468,5 +1489,209 @@ export class SettingsPageManager {
         if (languageGroup) {
             languageGroup.value = I18nService.getLanguage();
         }
+    }
+
+    // ===================== 日志页面管理 =====================
+
+    setupLogsPage(): void {
+        this.setupLogsTabs();
+        this.setupLogsAutoRefresh();
+        this.setupLogsActions();
+    }
+
+    setupLogsTabs(): void {
+        const tabsEl = document.getElementById('logs-tabs');
+        if (!tabsEl) return;
+
+        // 注入滚动样式到 Shadow DOM
+        requestAnimationFrame(() => {
+            const shadowRoot = tabsEl.shadowRoot;
+            if (shadowRoot) {
+                const container = shadowRoot.querySelector('[part="container"]') as HTMLElement;
+                if (container) {
+                    container.style.cssText = 'display: flex; flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch;';
+                }
+
+                // 让每个 tab 保持自然宽度不收缩
+                const slots = shadowRoot.querySelectorAll('slot');
+                slots.forEach(slot => {
+                    const assignedElements = slot.assignedElements();
+                    assignedElements.forEach(el => {
+                        if (el.tagName === 'MDUI-TAB') {
+                            (el as HTMLElement).style.cssText = 'flex-shrink: 0; white-space: nowrap;';
+                        }
+                    });
+                });
+            }
+
+            // 同时给 Light DOM 中的 tab 设置样式
+            const lightTabs = tabsEl.querySelectorAll('mdui-tab');
+            lightTabs.forEach(tab => {
+                (tab as HTMLElement).style.cssText = 'flex-shrink: 0; white-space: nowrap;';
+            });
+        });
+
+        // 绑定 tab 切换事件
+        tabsEl.addEventListener('change', (e: any) => {
+            this._logsSelectedTab = e.target.value;
+            this.loadActiveLog();
+        });
+    }
+
+    setupLogsAutoRefresh(): void {
+        const toggle = document.getElementById('logs-auto-refresh') as any;
+        if (!toggle) return;
+
+        toggle.addEventListener('change', () => {
+            this._logsAutoRefreshEnabled = toggle.checked;
+            if (this._logsAutoRefreshEnabled) {
+                this.startLogAutoRefresh();
+            } else {
+                this.stopLogAutoRefresh();
+            }
+        });
+    }
+
+    setupLogsActions(): void {
+        document.getElementById('export-logs-btn')?.addEventListener('click', () => this.exportLogs());
+        document.getElementById('export-all-btn')?.addEventListener('click', () => this.exportAll());
+        // document.getElementById('clear-logs-btn')?.addEventListener('click', () => this.clearDebugLogs());
+    }
+
+    startLogAutoRefresh(): void {
+        this.stopLogAutoRefresh(); // 先停止已有的
+        this._logsAutoRefreshInterval = setInterval(() => {
+            this.loadActiveLog();
+        }, this._logsAutoRefreshMs);
+    }
+
+    stopLogAutoRefresh(): void {
+        if (this._logsAutoRefreshInterval) {
+            clearInterval(this._logsAutoRefreshInterval);
+            this._logsAutoRefreshInterval = null;
+        }
+    }
+
+    // 根据当前选中的 tab 加载日志
+    loadActiveLog(): void {
+        switch (this._logsSelectedTab) {
+            case 'service':
+                this.loadServiceLog();
+                break;
+            case 'xray':
+                this.loadXrayLog();
+                break;
+            case 'tproxy':
+                this.loadTproxyLog();
+                break;
+        }
+    }
+
+    async updateLogs(): Promise<void> {
+        await this.loadActiveLog();
+    }
+
+    async loadServiceLog(): Promise<void> {
+        const container = document.getElementById('service-log');
+        if (!container) return;
+
+        try {
+            const log = await SettingsService.getServiceLog();
+            this.renderLog(container, log);
+        } catch (error: any) {
+            container.innerHTML = `<span style="color: var(--mdui-color-error);">${I18nService.t('logs.load_failed')}: ${error.message}</span>`;
+        }
+    }
+
+    async loadXrayLog(): Promise<void> {
+        const container = document.getElementById('xray-log');
+        if (!container) return;
+
+        try {
+            const log = await SettingsService.getXrayLog();
+            this.renderLog(container, log);
+        } catch (error: any) {
+            container.innerHTML = `<span style="color: var(--mdui-color-error);">${I18nService.t('logs.load_failed')}: ${error.message}</span>`;
+        }
+    }
+
+    async loadTproxyLog(): Promise<void> {
+        const container = document.getElementById('tproxy-log');
+        if (!container) return;
+
+        try {
+            const log = await SettingsService.getTproxyLog();
+            this.renderLog(container, log);
+        } catch (error: any) {
+            container.innerHTML = `<span style="color: var(--mdui-color-error);">${I18nService.t('logs.load_failed')}: ${error.message}</span>`;
+        }
+    }
+
+    renderLog(container: HTMLElement, log: string): void {
+        if (!log || log.trim() === '') {
+            container.innerHTML = '<span style="color: var(--mdui-color-on-surface-variant); font-style: italic;">No logs available</span>';
+            return;
+        }
+
+        // 将日志文本转为 HTML，保留换行
+        const escapedLog = log
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/\n/g, '<br>');
+
+        container.innerHTML = `<pre style="margin: 0; white-space: pre-wrap; word-break: break-all; font-size: 12px; line-height: 1.6;">${escapedLog}</pre>`;
+
+        // 滚动到底部
+        container.scrollTop = container.scrollHeight;
+    }
+
+    // 导出日志
+    async exportLogs(): Promise<void> {
+        try {
+            const result: any = await SettingsService.exportLogs();
+            if (result.success) {
+                toast(I18nService.t('logs.saved_to') + result.path);
+            } else {
+                toast(I18nService.t('logs.save_failed'));
+            }
+        } catch (error: any) {
+            toast(I18nService.t('logs.save_failed') + ': ' + error.message);
+        }
+    }
+
+    // 导出日志和配置
+    async exportAll(): Promise<void> {
+        try {
+            const result: any = await SettingsService.exportAll();
+            if (result.success) {
+                toast(I18nService.t('logs.saved_all_to') + result.path);
+            } else {
+                toast(I18nService.t('logs.save_failed'));
+            }
+        } catch (error: any) {
+            toast(I18nService.t('logs.save_failed') + ': ' + error.message);
+        }
+    }
+
+    // 清空调试日志
+    async clearDebugLogs(): Promise<void> {
+        try {
+            await (SettingsService as any).clearDebugLogs();
+            toast(I18nService.t('logs.debug_cleared'));
+            this.loadActiveLog();
+        } catch (error: any) {
+            toast(I18nService.t('logs.unknown_error') + ': ' + error.message);
+        }
+    }
+
+    // 页面离开时停止自动刷新
+    onLogsPageLeave(): void {
+        this.stopLogAutoRefresh();
+        const toggle = document.getElementById('logs-auto-refresh') as any;
+        if (toggle) {
+            toggle.checked = false;
+        }
+        this._logsAutoRefreshEnabled = false;
     }
 }

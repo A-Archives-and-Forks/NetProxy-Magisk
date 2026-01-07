@@ -6,7 +6,6 @@ import { toast } from '../utils/toast.js';
 import { StatusPageManager } from './status-page.js';
 import { ConfigPageManager } from './config-page.js';
 import { AppPageManager } from './app-page.js';
-import { LogsPageManager } from './logs-page.js';
 import { SettingsPageManager } from './settings-page.js';
 
 interface SkeletonOptions {
@@ -22,7 +21,6 @@ export class UI {
     statusPage: StatusPageManager;
     configPage: ConfigPageManager;
     appPage: AppPageManager;
-    logsPage: LogsPageManager;
     settingsPage: SettingsPageManager;
 
     constructor() {
@@ -34,7 +32,6 @@ export class UI {
         this.statusPage = new StatusPageManager(this);
         this.configPage = new ConfigPageManager(this);
         this.appPage = new AppPageManager(this);
-        this.logsPage = new LogsPageManager(this);
         this.settingsPage = new SettingsPageManager(this);
 
         // 立即应用主题，避免闪烁
@@ -59,10 +56,11 @@ export class UI {
         this.setupFAB();
         this.setupThemeToggle();
         this.setupDialogs();
-        this.setupAppSelector();
+        this.configPage.init();
         this.appPage.init();
+        this.settingsPage.init();
+        // Logs logic is now part of settingsPage, initialized there
         this.statusPage.setupModeButtons();
-        this.logsPage.init();
 
         // 初始化页面状态 (包括按钮可见性)
         this.switchPage(this.currentPage);
@@ -123,9 +121,9 @@ export class UI {
     }
 
     switchPage(pageName: string): void {
-        // Handle page leave events
+        // 如果离开日志页面，停止自动刷新
         if (this.currentPage === 'logs' && pageName !== 'logs') {
-            this.logsPage.onPageLeave();
+            this.settingsPage.onLogsPageLeave();
         }
 
         document.querySelectorAll('.page').forEach(page => {
@@ -158,8 +156,8 @@ export class UI {
             if (pageName === 'status') this.statusPage.update();
             if (pageName === 'config') this.configPage.update();
             if (pageName === 'uid') this.appPage.update();
-            if (pageName === 'logs') this.logsPage.update();
-
+            if (pageName === 'settings') this.settingsPage.update();
+            if (pageName === 'logs') this.settingsPage.updateLogs();
         }, 200);
     }
 
