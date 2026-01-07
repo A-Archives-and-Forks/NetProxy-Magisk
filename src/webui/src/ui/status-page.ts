@@ -87,7 +87,7 @@ export class StatusPageManager {
                     this.saveLayout();
                 }
             });
-            toast(I18nService.t('common.edit_mode_enabled') || '已进入编辑模式');
+            // toast(I18nService.t('common.edit_mode_enabled') || '已进入编辑模式');
         } else {
             grid.classList.remove('editing-mode');
             if (btn) btn.classList.remove('active');
@@ -99,7 +99,7 @@ export class StatusPageManager {
                 this.sortable = null;
             }
             this.saveLayout();
-            toast(I18nService.t('common.layout_saved') || '布局已保存');
+            // toast(I18nService.t('common.layout_saved') || '布局已保存');
         }
     }
 
