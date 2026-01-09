@@ -202,7 +202,7 @@ update_subscription() {
 
     log "INFO" "正在下载订阅内容 (User-Agent: Clash/1.19.18)..."
     if curl -L -k -s --connect-timeout 30 --retry 3 \
-        -H "User-Agent: Clash/1.0" \
+        -H "User-Agent: Clash/1.19.18" \
         -o "$tmp_file" \
         "$url" >> "$LOG_FILE" 2>&1; then
 
