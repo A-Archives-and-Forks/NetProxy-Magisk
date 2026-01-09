@@ -17,6 +17,10 @@
             "tag": "block"
         },
         {
+            "protocol": "freedom",
+            "tag": "api"
+        },
+        {
             "protocol": "dns",
             "tag": "dns-out"
         }
