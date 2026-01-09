@@ -197,16 +197,35 @@ update_subscription() {
     log "DEBUG" "目标目录: $sub_dir"
     
 
-    # 使用 proxylink 进行订阅转换
-    # -sub: 订阅链接
-    # -format xray: 输出 xray 格式
-    # -dir: 输出目录 (每个节点单独一个文件)
-    if "$MODDIR/bin/proxylink" -sub "$url" -insecure -dns -format xray -dir "$sub_dir" >> "$LOG_FILE" 2>&1; then
-         log "INFO" "订阅更新完成"
-         echo "已导入节点"
+    # 使用 curl 下载订阅内容 (Clash UA)
+    local tmp_file="$sub_dir/fetch.tmp"
+
+    log "INFO" "正在下载订阅内容 (User-Agent: Clash/1.19.18)..."
+    if curl -L -k -s --connect-timeout 30 --retry 3 \
+        -H "User-Agent: Clash/1.0" \
+        -o "$tmp_file" \
+        "$url" >> "$LOG_FILE" 2>&1; then
+
+        log "INFO" "下载成功，开始解析..."
+
+        # 使用 proxylink 解析
+        # -file: 本地文件
+        # -format xray: 输出 xray 格式
+        # -dir: 输出目录
+        if "$MODDIR/bin/proxylink" -file "$tmp_file" -insecure -dns -format xray -dir "$sub_dir" >> "$LOG_FILE" 2>&1; then
+             rm -f "$tmp_file"
+             log "INFO" "订阅更新完成"
+             echo "已导入节点"
+        else
+             rm -f "$tmp_file"
+             log "ERROR" "订阅解析失败"
+             echo "错误: 订阅解析失败，请查看日志"
+             exit 1
+        fi
     else
-         log "ERROR" "订阅更新失败"
-         echo "错误: 订阅更新失败，请查看日志"
+         rm -f "$tmp_file"
+         log "ERROR" "订阅下载失败"
+         echo "错误: 订阅下载失败"
          exit 1
     fi
 }
