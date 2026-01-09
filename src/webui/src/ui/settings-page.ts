@@ -1,6 +1,5 @@
 import { toast } from '../utils/toast.js';
 import { SettingsService } from '../services/settings-service.js';
-import { ShellService } from '../services/ksu.js';
 import { I18nService } from '../i18n/i18n-service.js';
 import { setColorScheme } from 'mdui/functions/setColorScheme.js';
 import { setTheme } from 'mdui/functions/setTheme.js';
@@ -522,16 +521,8 @@ export class SettingsPageManager {
         try {
             toast(I18nService.t('routing.toast_importing'));
 
-            // 通过 KSU shell 执行 curl 获取内容
-            const content = await ShellService.fetchUrl(url);
-
-            if (!content) {
-                toast(I18nService.t('routing.toast_fetch_failed'));
-                return;
-            }
-
-            // 解析 Clash YAML payload
-            const domains = this.parseClashPayload(content);
+            // 使用 Service 层获取并解析域名列表
+            const domains = await SettingsService.importClashRulesFromUrl(url);
 
             if (domains.length === 0) {
                 toast(I18nService.t('routing.toast_no_domains'));
@@ -561,46 +552,6 @@ export class SettingsPageManager {
             console.error('导入 Clash 规则失败:', error);
             toast(I18nService.t('routing.toast_import_failed') + error.message);
         }
-    }
-
-    // 解析 Clash YAML payload 格式
-    parseClashPayload(content) {
-        const domains = [];
-        const lines = content.split('\n');
-        let inPayload = false;
-
-        for (const line of lines) {
-            const trimmed = line.trim();
-
-            // 检测 payload: 开始
-            if (trimmed === 'payload:') {
-                inPayload = true;
-                continue;
-            }
-
-            // 如果在 payload 区域，解析域名
-            if (inPayload) {
-                // 检测是否结束 (遇到非 - 开头的行且非空)
-                if (trimmed && !trimmed.startsWith('-') && !trimmed.startsWith('#')) {
-                    break;
-                }
-
-                // 解析 - 'domain' 或 - "domain" 或 - domain 格式
-                if (trimmed.startsWith('-')) {
-                    let domain = trimmed.substring(1).trim();
-                    // 移除引号
-                    domain = domain.replace(/^['"]|['"]$/g, '');
-                    // 移除 Clash 特殊前缀 (DOMAIN, DOMAIN-SUFFIX 等)
-                    domain = domain.replace(/^\+\.|^\*\./, '');
-
-                    if (domain && !domain.startsWith('#')) {
-                        domains.push(domain);
-                    }
-                }
-            }
-        }
-
-        return domains;
     }
 
     // ===================== DNS 设置页面 =====================

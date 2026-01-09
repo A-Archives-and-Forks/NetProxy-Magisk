@@ -438,4 +438,70 @@ export class SettingsService {
             return { success: false, error: error.message };
         }
     }
+
+    // ===================== Clash 规则导入 =====================
+
+    /**
+     * 获取 Clash 规则列表 URL 内容
+     */
+    static async fetchClashRules(url: string): Promise<string | null> {
+        return KSU.fetchUrl(url);
+    }
+
+    /**
+     * 解析 Clash YAML payload 格式
+     * @param content YAML 内容
+     * @returns 域名列表
+     */
+    static parseClashPayload(content: string): string[] {
+        const domains: string[] = [];
+        const lines = content.split('\n');
+        let inPayload = false;
+
+        for (const line of lines) {
+            const trimmed = line.trim();
+
+            // 检测 payload: 开始
+            if (trimmed === 'payload:') {
+                inPayload = true;
+                continue;
+            }
+
+            // 如果在 payload 区域，解析域名
+            if (inPayload) {
+                // 检测是否结束 (遇到非 - 开头的行且非空)
+                if (trimmed && !trimmed.startsWith('-') && !trimmed.startsWith('#')) {
+                    break;
+                }
+
+                // 解析 - 'domain' 或 - "domain" 或 - domain 格式
+                if (trimmed.startsWith('-')) {
+                    let domain = trimmed.substring(1).trim();
+                    // 移除引号
+                    domain = domain.replace(/^['"]|['"]$/g, '');
+                    // 移除 Clash 特殊前缀 (DOMAIN, DOMAIN-SUFFIX 等)
+                    domain = domain.replace(/^\+\.|^\*\./, '');
+
+                    if (domain && !domain.startsWith('#')) {
+                        domains.push(domain);
+                    }
+                }
+            }
+        }
+
+        return domains;
+    }
+
+    /**
+     * 完整导入流程：获取 URL 内容并解析
+     * @param url Clash 规则列表 URL
+     * @returns 解析后的域名列表
+     */
+    static async importClashRulesFromUrl(url: string): Promise<string[]> {
+        const content = await this.fetchClashRules(url);
+        if (!content) {
+            return [];
+        }
+        return this.parseClashPayload(content);
+    }
 }
