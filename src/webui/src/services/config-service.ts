@@ -191,11 +191,12 @@ EOF
     }
 
     static async addSubscription(name: string, url: string): Promise<OperationResult> {
-        const statusFile = `${KSU.MODULE_PATH}/config/.sub_status`;
-        await KSU.exec(`rm -f ${statusFile}`);
-        // Fire-and-forget: spawn background script
-        KSU.spawn('sh', ['-c', `sh ${KSU.MODULE_PATH}/scripts/config/subscription.sh add "${name}" "${url}" && echo success > ${statusFile} || echo fail > ${statusFile}`]);
-        return await this.waitForSubscriptionComplete(statusFile, 60000);
+        try {
+            await KSU.exec(`sh ${KSU.MODULE_PATH}/scripts/config/subscription.sh add "${name}" "${url}"`);
+            return { success: true };
+        } catch (error: any) {
+            return { success: false, error: error.message };
+        }
     }
 
     static async updateSubscription(name: string): Promise<OperationResult> {
