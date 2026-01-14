@@ -6,10 +6,10 @@ export default defineConfig({
     lang: 'zh-CN',
 
     // GitHub Pages 部署配置
-    base: '/NetProxy/',
+    base: '/NetProxy-Magisk/',
 
     head: [
-        ['link', { rel: 'icon', href: '/NetProxy/favicon.ico' }]
+        ['link', { rel: 'icon', href: '/NetProxy-Magisk/favicon.ico' }]
     ],
 
     themeConfig: {
