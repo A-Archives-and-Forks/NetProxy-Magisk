@@ -724,4 +724,16 @@ export class StatusPageManager {
             }
         }
     }
+
+    /**
+     * 更新网速图表颜色
+     * 当主题色改变时调用此方法刷新图表颜色
+     */
+    updateSpeedChartColors(): void {
+        if (!this.speedChart) return;
+
+        this.speedChart.destroy();
+        this.speedChart = null;
+        this.initSpeedChart();
+    }
 }
